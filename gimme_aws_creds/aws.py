@@ -68,6 +68,10 @@ class AwsResolver:
             else:
                 table[role] = idp
 
+        # No role attribute in the assertion: nothing to resolve names for
+        if not table:
+            return []
+
         # init parser
         soup = BeautifulSoup(signin_page, "html.parser")
 

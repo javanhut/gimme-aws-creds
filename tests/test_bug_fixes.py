@@ -352,3 +352,36 @@ class TestFactorChoiceRange(unittest.TestCase):
         ui.input.side_effect = ["2", "1"]
         client = OktaClassicClient(ui, "https://example.okta.com")
         self.assertEqual(client._get_user_int_factor_choice(2), 1)
+
+
+class TestNoRolesInAssertion(unittest.TestCase):
+    """A SAML response without AWS role attributes must explain itself, not crash."""
+
+    ASSERTION = (
+        '<p:Response xmlns:p="urn:oasis:names:tc:SAML:2.0:protocol" '
+        'xmlns:a="urn:oasis:names:tc:SAML:2.0:assertion"><p:Status>'
+        '<p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></p:Status>'
+        '<a:Assertion><a:AttributeStatement><a:Attribute Name="email">'
+        "<a:AttributeValue>x@y.z</a:AttributeValue></a:Attribute>"
+        "</a:AttributeStatement></a:Assertion></p:Response>"
+    )
+
+    def test_resolver_returns_no_roles_and_main_reports_it(self):
+        import base64
+        from gimme_aws_creds.aws import AwsResolver
+
+        saml = base64.b64encode(self.ASSERTION.encode()).decode()
+        resolver = AwsResolver()
+        resolver.get_signinpage = MagicMock(return_value="<html></html>")
+        self.assertEqual(resolver._enumerate_saml_roles(saml, "https://t"), [])
+
+        creds = GimmeAWSCreds()
+        creds.resolver = resolver
+        creds._cache["conf_dict"] = {}
+        creds._cache["config"] = MagicMock()
+        creds._cache["saml_data"] = {"SAMLResponse": saml, "TargetUrl": "https://t"}
+        with self.assertRaises(errors.GimmeAWSCredsError) as ctx:
+            creds.aws_roles
+        self.assertIn("https://t", ctx.exception.message)
+        self.assertIn("Success", ctx.exception.message)
+        self.assertIn("email", ctx.exception.message)

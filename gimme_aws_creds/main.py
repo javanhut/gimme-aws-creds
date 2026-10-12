@@ -14,12 +14,14 @@ See the License for the specific language governing permissions and* limitations
 # For enumerating saml roles
 # standard imports
 import asyncio
+import base64
 import configparser
 import json
 import os
 import re
 import sys
 import concurrent.futures
+import xml.etree.ElementTree as ET
 
 # extras
 import boto3
@@ -1070,8 +1072,41 @@ class GimmeAWSCreds:
                 self.saml_data["SAMLResponse"],
                 self.saml_data["TargetUrl"],
             )
+        if not roles:
+            raise errors.GimmeAWSCredsError(self._no_roles_message(self.saml_data))
         self._cache["aws_roles"] = roles
         return roles
+
+    @staticmethod
+    def _no_roles_message(saml_data):
+        """Explain why a SAML response yielded no roles, from what it does contain."""
+        message = "No roles found in the SAML response for {}.".format(
+            saml_data.get("TargetUrl")
+        )
+        try:
+            xml = base64.b64decode(saml_data["SAMLResponse"])
+            root = ET.fromstring(xml)
+        except Exception:
+            return message + " The response could not be parsed."
+        if b"EncryptedAssertion" in xml:
+            return message + (
+                " The assertion is encrypted, which gimme-aws-creds cannot read;"
+                " disable assertion encryption on the Okta app."
+            )
+        statuses = [
+            s.get("Value", "").rsplit(":", 1)[-1]
+            for s in root.iter("{urn:oasis:names:tc:SAML:2.0:protocol}StatusCode")
+        ]
+        names = sorted(
+            {
+                a.get("Name", "")
+                for a in root.iter("{urn:oasis:names:tc:SAML:2.0:assertion}Attribute")
+            }
+        )
+        return message + (
+            " SAML status: {}. Attributes present: {}."
+            " Check that the configured app is an AWS app and that you are assigned a role in it."
+        ).format(", ".join(statuses) or "none", ", ".join(names) or "none")
 
     @property
     def aws_selected_roles(self):
