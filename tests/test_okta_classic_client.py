@@ -1,4 +1,5 @@
 """Unit tests for gimme_aws_creds"""
+
 import hashlib
 import json
 import sys
@@ -21,7 +22,7 @@ from gimme_aws_creds.okta_classic import OktaClassicClient
 
 class TestOktaClassicClient(unittest.TestCase):
     """Class to test Okta Client Class.
-       Mock is used to mock external calls"""
+    Mock is used to mock external calls"""
 
     @contextmanager
     def captured_output(self):
@@ -36,11 +37,11 @@ class TestOktaClassicClient(unittest.TestCase):
 
     def setUp(self):
         """Set up for the unit tests"""
-        self.okta_org_url = 'https://example.okta.com'
-        self.server_embed_link = 'https://example.okta.com/home/foo/bar/baz'
-        self.gimme_creds_server = 'https://localhost:8443'
-        self.login_url = 'https://localhost:8443/login?stateToken=00Wf8xZJ79mSoTYnJqXbvRegT8QB1EX1IBVk1TU7KI'
-        self.state_token = '00Wf8xZJ79mSoTYnJqXbvRegT8QB1EX1IBVk1TU7KI'
+        self.okta_org_url = "https://example.okta.com"
+        self.server_embed_link = "https://example.okta.com/home/foo/bar/baz"
+        self.gimme_creds_server = "https://localhost:8443"
+        self.login_url = "https://localhost:8443/login?stateToken=00Wf8xZJ79mSoTYnJqXbvRegT8QB1EX1IBVk1TU7KI"
+        self.state_token = "00Wf8xZJ79mSoTYnJqXbvRegT8QB1EX1IBVk1TU7KI"
         self.client = self.setUp_client(self.okta_org_url, False)
 
         self.sms_factor = {
@@ -48,19 +49,13 @@ class TestOktaClassicClient(unittest.TestCase):
             "factorType": "sms",
             "provider": "OKTA",
             "vendorName": "OKTA",
-            "profile": {
-                "phoneNumber": "+1 XXX-XXX-1234"
-            },
+            "profile": {"phoneNumber": "+1 XXX-XXX-1234"},
             "_links": {
                 "verify": {
                     "href": "https://example.okta.com/api/v1/authn/factors/sms9hmdk2qvhjOQQ30h7/verify",
-                    "hints": {
-                        "allow": [
-                            "POST"
-                        ]
-                    }
+                    "hints": {"allow": ["POST"]},
                 }
-            }
+            },
         }
 
         self.email_factor = {
@@ -68,117 +63,89 @@ class TestOktaClassicClient(unittest.TestCase):
             "factorType": "email",
             "provider": "OKTA",
             "vendorName": "OKTA",
-            "profile": {
-                "email": "example@example.com"
-            },
+            "profile": {"email": "example@example.com"},
             "_links": {
                 "verify": {
                     "href": "https://example.okta.com/api/v1/authn/factors/ema9hmdk2qvhjOQQ30h7/verify",
-                    "hints": {
-                        "allow": [
-                            "POST"
-                        ]
-                    }
+                    "hints": {"allow": ["POST"]},
                 }
-            }
+            },
         }
 
         self.push_factor_without_profile = {
-                "id": "opf9ei43pbAgb2qgc0h7",
-                "factorType": "push",
-                "provider": "OKTA",
-                "vendorName": "OKTA",
-                "_links": {
-                    "verify": {
-                        "href": "https://example.okta.com/api/v1/authn/factors/opf9ei43pbAgb2qgc0h7/verify",
-                        "hints": {
-                            "allow": [
-                                "POST"
-                            ]
-                        }
-                    }
+            "id": "opf9ei43pbAgb2qgc0h7",
+            "factorType": "push",
+            "provider": "OKTA",
+            "vendorName": "OKTA",
+            "_links": {
+                "verify": {
+                    "href": "https://example.okta.com/api/v1/authn/factors/opf9ei43pbAgb2qgc0h7/verify",
+                    "hints": {"allow": ["POST"]},
                 }
-            }
-        
+            },
+        }
+
         self.push_factor = {
-                "id": "opf9ei43pbAgb2qgc0h7",
-                "factorType": "push",
-                "provider": "OKTA",
-                "vendorName": "OKTA",
-                "profile": {
-                    "credentialId": "jane.does@example.com",
-                    "deviceType": "SmartPhone_IPhone",
-                    "keys": [
-                        {
-                            "kty": "PKIX",
-                            "use": "sig",
-                            "kid": "default",
-                            "x5c": [
-                                "fdsfsdfdsfs"
-                            ]
-                        }
-                    ],
-                    "name": "Jane.Doe iPhone",
-                    "platform": "IOS",
-                    "version": "10.2.1"
-                },
-                "_links": {
-                    "verify": {
-                        "href": "https://example.okta.com/api/v1/authn/factors/opf9ei43pbAgb2qgc0h7/verify",
-                        "hints": {
-                            "allow": [
-                                "POST"
-                            ]
-                        }
+            "id": "opf9ei43pbAgb2qgc0h7",
+            "factorType": "push",
+            "provider": "OKTA",
+            "vendorName": "OKTA",
+            "profile": {
+                "credentialId": "jane.does@example.com",
+                "deviceType": "SmartPhone_IPhone",
+                "keys": [
+                    {
+                        "kty": "PKIX",
+                        "use": "sig",
+                        "kid": "default",
+                        "x5c": ["fdsfsdfdsfs"],
                     }
+                ],
+                "name": "Jane.Doe iPhone",
+                "platform": "IOS",
+                "version": "10.2.1",
+            },
+            "_links": {
+                "verify": {
+                    "href": "https://example.okta.com/api/v1/authn/factors/opf9ei43pbAgb2qgc0h7/verify",
+                    "hints": {"allow": ["POST"]},
                 }
-            }
+            },
+        }
 
         self.totp_factor = {
-                "id": "ost9ei4toqQBAzXmw0h7",
-                "factorType": "token:software:totp",
-                "provider": "OKTA",
-                "vendorName": "OKTA",
-                "profile": {
-                    "credentialId": "jane.doe@example.com"
-                },
-                "_links": {
-                    "verify": {
-                        "href": "https://example.okta.com/api/v1/authn/factors/ost9ei4toqQBAzXmw0h7/verify",
-                        "hints": {
-                            "allow": [
-                                "POST"
-                            ]
-                        }
-                    }
+            "id": "ost9ei4toqQBAzXmw0h7",
+            "factorType": "token:software:totp",
+            "provider": "OKTA",
+            "vendorName": "OKTA",
+            "profile": {"credentialId": "jane.doe@example.com"},
+            "_links": {
+                "verify": {
+                    "href": "https://example.okta.com/api/v1/authn/factors/ost9ei4toqQBAzXmw0h7/verify",
+                    "hints": {"allow": ["POST"]},
                 }
-            }
+            },
+        }
 
         self.hardware_factor = {
-                'id': 'ykfb7c5ujftQeL9B51t9',
-                'factorType': 'token:hardware',
-                'provider': 'YUBICO',
-                'vendorName': 'YUBICO',
-                'profile': {
-                    'credentialId': '000009884014'
-                 },
-                '_links': {
-                    'verify': {
-                        'href': 'https://datto.okta.com/api/v1/authn/factors/ykfb0c5ujftWeL9X51t7/verify',
-                        'hints': {
-                            'allow': [
-                                'POST'
-                            ]
-                        }
-                    }
+            "id": "ykfb7c5ujftQeL9B51t9",
+            "factorType": "token:hardware",
+            "provider": "YUBICO",
+            "vendorName": "YUBICO",
+            "profile": {"credentialId": "000009884014"},
+            "_links": {
+                "verify": {
+                    "href": "https://datto.okta.com/api/v1/authn/factors/ykfb0c5ujftWeL9X51t7/verify",
+                    "hints": {"allow": ["POST"]},
                 }
-            }
+            },
+        }
 
         self.unknown_factor = {
-                "id": "ost9ei4toqQBAzXmw0h7",
-                "factorType": "UNKNOWN_FACTOR",
-                "provider": "OKTA",
-                "vendorName": "OKTA"
+            "id": "ost9ei4toqQBAzXmw0h7",
+            "factorType": "UNKNOWN_FACTOR",
+            "provider": "OKTA",
+            "vendorName": "OKTA",
         }
 
         self.webauthn_factor = {
@@ -192,33 +159,29 @@ class TestOktaClassicClient(unittest.TestCase):
             "_links": {
                 "verify": {
                     "href": "https://example.okta.com/api/v1/authn/factors/fw13371cpasTeNMOL4x6/verify",
-                    "hints": {
-                        "allow": [
-                            "POST"
-                        ]
-                    }
+                    "hints": {"allow": ["POST"]},
                 },
-            }
+            },
         }
 
-        self.api_results = [{
-          "id": "0oaabbfwyixfM6Gwu0h7",
-          "name": "Sample AWS Account",
-          "identityProviderArn": "arn:aws:iam::012345678901:saml-provider/okta-sso",
-          "roles": [{
-              "name": "ReadOnly",
-              "arn": "arn:aws:iam::012345678901:role/ReadOnly"
-            },
+        self.api_results = [
             {
-              "name": "Admin",
-              "arn": "arn:aws:iam::012345678901:role/Admin"
+                "id": "0oaabbfwyixfM6Gwu0h7",
+                "name": "Sample AWS Account",
+                "identityProviderArn": "arn:aws:iam::012345678901:saml-provider/okta-sso",
+                "roles": [
+                    {
+                        "name": "ReadOnly",
+                        "arn": "arn:aws:iam::012345678901:role/ReadOnly",
+                    },
+                    {"name": "Admin", "arn": "arn:aws:iam::012345678901:role/Admin"},
+                ],
+                "links": {
+                    "appLink": "https://example.okta.com/home/amazon_aws/0oaabbfwyixfM6Gwu0h7/137",
+                    "appLogo": "https://op1static.oktacdn.com/assets/img/logos/amazon-aws.0ade36569a58c5a43c01603e2d259aa9.png",
+                },
             }
-          ],
-          "links": {
-            "appLink": "https://example.okta.com/home/amazon_aws/0oaabbfwyixfM6Gwu0h7/137",
-            "appLogo": "https://op1static.oktacdn.com/assets/img/logos/amazon-aws.0ade36569a58c5a43c01603e2d259aa9.png"
-          }
-        }]
+        ]
 
         self.login_saml = """
         <html lang="en">
@@ -233,7 +196,13 @@ class TestOktaClassicClient(unittest.TestCase):
 
         </html>"""
 
-        self.factor_list = [self.sms_factor, self.push_factor, self.totp_factor, self.webauthn_factor, self.email_factor]
+        self.factor_list = [
+            self.sms_factor,
+            self.push_factor,
+            self.totp_factor,
+            self.webauthn_factor,
+            self.email_factor,
+        ]
 
     def setUp_client(self, okta_org_url, verify_ssl_certs):
         client = OktaClassicClient(ui.default, okta_org_url, verify_ssl_certs)
@@ -243,7 +212,7 @@ class TestOktaClassicClient(unittest.TestCase):
     def test_get_headers(self):
         """Testing that get_headers returns the expected results"""
         header = self.client._get_headers()
-        self.assertEqual(header['Accept'], 'application/json')
+        self.assertEqual(header["Accept"], "application/json")
 
     @responses.activate
     def test_get_state_token(self):
@@ -262,8 +231,8 @@ class TestOktaClassicClient(unittest.TestCase):
                         "firstName": "Jane",
                         "lastName": "Doe",
                         "locale": "en",
-                        "timeZone": "America/Los_Angeles"
-                    }
+                        "timeZone": "America/Los_Angeles",
+                    },
                 },
                 "target": {
                     "type": "APP",
@@ -273,56 +242,68 @@ class TestOktaClassicClient(unittest.TestCase):
                         "logo": {
                             "name": "medium",
                             "href": "https://op1static.oktacdn.com/bc/globalFileStoreRecord?id=gfsatgifysE8NG37F0h7",
-                            "type": "image/png"
+                            "type": "image/png",
                         }
-                    }
-                }
+                    },
+                },
             },
             "_links": {
                 "next": {
                     "name": "original",
                     "href": "https://example.okta.com/login/step-up/redirect?stateToken=00Wf8xZJ79mSoTYnJqXbvRegT8QB1EX1IBVk1TU7KI",
-                    "hints": {
-                        "allow": [
-                            "GET"
-                        ]
-                    }
+                    "hints": {"allow": ["GET"]},
                 }
-            }
+            },
         }
 
-        responses.add(responses.GET, self.server_embed_link, status=302, adding_headers={'Location': self.login_url})
-        responses.add(responses.POST, self.okta_org_url + '/api/v1/authn', status=200, body=json.dumps(auth_response))
+        responses.add(
+            responses.GET,
+            self.server_embed_link,
+            status=302,
+            adding_headers={"Location": self.login_url},
+        )
+        responses.add(
+            responses.POST,
+            self.okta_org_url + "/api/v1/authn",
+            status=200,
+            body=json.dumps(auth_response),
+        )
 
         self.client._server_embed_link = self.server_embed_link
         result = self.client._get_initial_flow_state(self.server_embed_link)
-        self.assertEqual(result, {'stateToken': self.state_token, 'apiResponse': auth_response})
+        self.assertEqual(
+            result, {"stateToken": self.state_token, "apiResponse": auth_response}
+        )
 
-    @patch('getpass.getpass', return_value='1234qwert')
-    @patch('builtins.input', return_value='ann@example.com')
+    @patch("getpass.getpass", return_value="1234qwert")
+    @patch("builtins.input", return_value="ann@example.com")
     def test_get_username_password_creds(self, mock_pass, mock_input):
         """Test that initial authentication works with Okta"""
         result = self.client._get_username_password_creds()
-        self.assertDictEqual(result, {'username': 'ann@example.com', 'password': '1234qwert' })
+        self.assertDictEqual(
+            result, {"username": "ann@example.com", "password": "1234qwert"}
+        )
 
-    @patch('getpass.getpass', return_value='1234qwert')
-    @patch('builtins.input', return_value='')
+    @patch("getpass.getpass", return_value="1234qwert")
+    @patch("builtins.input", return_value="")
     def test_passed_username(self, mock_pass, mock_input):
         """Test that initial authentication works with Okta"""
-        self.client.set_username('ann@example.com')
+        self.client.set_username("ann@example.com")
         result = self.client._get_username_password_creds()
-        self.assertDictEqual(result, {'username': 'ann@example.com', 'password': '1234qwert' })
+        self.assertDictEqual(
+            result, {"username": "ann@example.com", "password": "1234qwert"}
+        )
 
-    @patch('getpass.getpass', return_value='')
-    @patch('builtins.input', return_value='ann@example.com')
+    @patch("getpass.getpass", return_value="")
+    @patch("builtins.input", return_value="ann@example.com")
     def test_missing_password(self, mock_pass, mock_input):
         """Test that initial authentication works with Okta"""
         with self.assertRaises(errors.GimmeAWSCredsExitBase):
             self.client._get_username_password_creds()
 
     @responses.activate
-    @patch('getpass.getpass', return_value='1234qwert')
-    @patch('builtins.input', return_value='ann@example.com')
+    @patch("getpass.getpass", return_value="1234qwert")
+    @patch("builtins.input", return_value="ann@example.com")
     def test_login_username_password(self, mock_pass, mock_input):
         """Test that initial authentication works with Okta"""
         auth_response = {
@@ -338,8 +319,8 @@ class TestOktaClassicClient(unittest.TestCase):
                         "firstName": "Eric",
                         "lastName": "Pierce",
                         "locale": "en",
-                        "timeZone": "America/Los_Angeles"
-                    }
+                        "timeZone": "America/Los_Angeles",
+                    },
                 },
                 "target": {
                     "type": "APP",
@@ -349,27 +330,32 @@ class TestOktaClassicClient(unittest.TestCase):
                         "logo": {
                             "name": "medium",
                             "href": "https://op1static.oktacdn.com/bc/globalFileStoreRecord?id=gfsatgifysE8NG37F0h7",
-                            "type": "image/png"
+                            "type": "image/png",
                         }
-                    }
-                }
+                    },
+                },
             },
             "_links": {
                 "next": {
                     "name": "original",
                     "href": "https://example.okta.com/login/step-up/redirect?stateToken=00Wf8xZJ79mSoTYnJqXbvRegT8QB1EX1IBVk1TU7KI",
-                    "hints": {
-                        "allow": [
-                            "GET"
-                        ]
-                    }
+                    "hints": {"allow": ["GET"]},
                 }
-            }
+            },
         }
 
-        responses.add(responses.POST, self.okta_org_url + '/api/v1/authn', status=200, body=json.dumps(auth_response))
-        result = self.client._login_username_password(self.state_token, self.okta_org_url + '/api/v1/authn')
-        self.assertEqual(result, {'stateToken': self.state_token, 'apiResponse': auth_response})
+        responses.add(
+            responses.POST,
+            self.okta_org_url + "/api/v1/authn",
+            status=200,
+            body=json.dumps(auth_response),
+        )
+        result = self.client._login_username_password(
+            self.state_token, self.okta_org_url + "/api/v1/authn"
+        )
+        self.assertEqual(
+            result, {"stateToken": self.state_token, "apiResponse": auth_response}
+        )
 
     @responses.activate
     def test_login_send_sms(self):
@@ -388,22 +374,20 @@ class TestOktaClassicClient(unittest.TestCase):
                         "firstName": "Jane",
                         "lastName": "Doe",
                         "locale": "en",
-                        "timeZone": "America/Los_Angeles"
-                    }
+                        "timeZone": "America/Los_Angeles",
+                    },
                 },
                 "factor": {
                     "id": "sms9hmdk2qvhjOQQ30h7",
                     "factorType": "sms",
                     "provider": "OKTA",
                     "vendorName": "OKTA",
-                    "profile": {
-                        "phoneNumber": "+1 XXX-XXX-1234"
-                    }
+                    "profile": {"phoneNumber": "+1 XXX-XXX-1234"},
                 },
                 "policy": {
                     "allowRememberDevice": False,
                     "rememberDeviceLifetimeInMinutes": 0,
-                    "rememberDeviceByDefault": False
+                    "rememberDeviceByDefault": False,
                 },
                 "target": {
                     "type": "APP",
@@ -413,54 +397,45 @@ class TestOktaClassicClient(unittest.TestCase):
                         "logo": {
                             "name": "medium",
                             "href": "https://op1static.oktacdn.com/bc/globalFileStoreRecord?id=gfsatgifysE8NG37F0h7",
-                            "type": "image/png"
+                            "type": "image/png",
                         }
-                    }
-                }
+                    },
+                },
             },
             "_links": {
                 "next": {
                     "name": "verify",
                     "href": "https://example.okta.com/api/v1/authn/factors/sms9hmdk2qvhjOQQ30h7/verify",
-                    "hints": {
-                        "allow": [
-                            "POST"
-                        ]
-                    }
+                    "hints": {"allow": ["POST"]},
                 },
                 "cancel": {
                     "href": "https://example.okta.com/api/v1/authn/cancel",
-                    "hints": {
-                        "allow": [
-                            "POST"
-                        ]
-                    }
+                    "hints": {"allow": ["POST"]},
                 },
                 "prev": {
                     "href": "https://example.okta.com/api/v1/authn/previous",
-                    "hints": {
-                        "allow": [
-                            "POST"
-                        ]
-                    }
+                    "hints": {"allow": ["POST"]},
                 },
                 "resend": [
                     {
                         "name": "sms",
                         "href": "https://example.okta.com/api/v1/authn/factors/sms9hmdk2qvhjOQQ30h7/verify/resend",
-                        "hints": {
-                            "allow": [
-                                "POST"
-                            ]
-                        }
+                        "hints": {"allow": ["POST"]},
                     }
-                ]
-            }
+                ],
+            },
         }
 
-        responses.add(responses.POST, 'https://example.okta.com/api/v1/authn/factors/sms9hmdk2qvhjOQQ30h7/verify', status=200, body=json.dumps(verify_response))
+        responses.add(
+            responses.POST,
+            "https://example.okta.com/api/v1/authn/factors/sms9hmdk2qvhjOQQ30h7/verify",
+            status=200,
+            body=json.dumps(verify_response),
+        )
         result = self.client._login_send_sms(self.state_token, self.sms_factor)
-        self.assertEqual(result, {'stateToken': self.state_token, 'apiResponse': verify_response})
+        self.assertEqual(
+            result, {"stateToken": self.state_token, "apiResponse": verify_response}
+        )
 
     @responses.activate
     def test_login_send_email(self):
@@ -479,22 +454,20 @@ class TestOktaClassicClient(unittest.TestCase):
                         "firstName": "Jane",
                         "lastName": "Doe",
                         "locale": "en",
-                        "timeZone": "America/Los_Angeles"
-                    }
+                        "timeZone": "America/Los_Angeles",
+                    },
                 },
                 "factor": {
                     "id": "ema9hmdk2qvhjOQQ30h7",
                     "factorType": "email",
                     "provider": "OKTA",
                     "vendorName": "OKTA",
-                    "profile": {
-                        "email": "example@example.com"
-                    }
+                    "profile": {"email": "example@example.com"},
                 },
                 "policy": {
                     "allowRememberDevice": False,
                     "rememberDeviceLifetimeInMinutes": 0,
-                    "rememberDeviceByDefault": False
+                    "rememberDeviceByDefault": False,
                 },
                 "target": {
                     "type": "APP",
@@ -504,163 +477,143 @@ class TestOktaClassicClient(unittest.TestCase):
                         "logo": {
                             "name": "medium",
                             "href": "https://op1static.oktacdn.com/bc/globalFileStoreRecord?id=gfsatgifysE8NG37F0h7",
-                            "type": "image/png"
+                            "type": "image/png",
                         }
-                    }
-                }
+                    },
+                },
             },
             "_links": {
                 "next": {
                     "name": "verify",
                     "href": "https://example.okta.com/api/v1/authn/factors/ema9hmdk2qvhjOQQ30h7/verify",
-                    "hints": {
-                        "allow": [
-                            "POST"
-                        ]
-                    }
+                    "hints": {"allow": ["POST"]},
                 },
                 "cancel": {
                     "href": "https://example.okta.com/api/v1/authn/cancel",
-                    "hints": {
-                        "allow": [
-                            "POST"
-                        ]
-                    }
+                    "hints": {"allow": ["POST"]},
                 },
                 "prev": {
                     "href": "https://example.okta.com/api/v1/authn/previous",
-                    "hints": {
-                        "allow": [
-                            "POST"
-                        ]
-                    }
+                    "hints": {"allow": ["POST"]},
                 },
                 "resend": [
                     {
                         "name": "sms",
                         "href": "https://example.okta.com/api/v1/authn/factors/ema9hmdk2qvhjOQQ30h7/verify/resend",
-                        "hints": {
-                            "allow": [
-                                "POST"
-                            ]
-                        }
+                        "hints": {"allow": ["POST"]},
                     }
-                ]
-            }
+                ],
+            },
         }
 
-        responses.add(responses.POST, 'https://example.okta.com/api/v1/authn/factors/ema9hmdk2qvhjOQQ30h7/verify', status=200, body=json.dumps(verify_response))
+        responses.add(
+            responses.POST,
+            "https://example.okta.com/api/v1/authn/factors/ema9hmdk2qvhjOQQ30h7/verify",
+            status=200,
+            body=json.dumps(verify_response),
+        )
         result = self.client._login_send_email(self.state_token, self.email_factor)
-        self.assertEqual(result, {'stateToken': self.state_token, 'apiResponse': verify_response})
+        self.assertEqual(
+            result, {"stateToken": self.state_token, "apiResponse": verify_response}
+        )
 
     @responses.activate
     def test_login_send_push(self):
         """Test that Okta Verify can be used for MFA"""
 
         verify_response = {
-    "stateToken": "00Wf8xZJ79mSoTYnJqXbvRegT8QB1EX1IBVk1TU7KI",
-    "type": "SESSION_STEP_UP",
-    "expiresAt": "2017-06-15T22:32:40.000Z",
-    "status": "MFA_CHALLENGE",
-    "factorResult": "WAITING",
-    "_embedded": {
-        "user": {
-            "id": "00u8p8560rXMQ95cP0h7",
-            "profile": {
-                "login": "jane.doe@example.com",
-                "firstName": "Jane",
-                "lastName": "Doe",
-                "locale": "en",
-                "timeZone": "America/Los_Angeles"
-            }
-        },
-        "factor": {
-            "id": "opf9ei43pbAgb2qgc0h7",
-            "factorType": "push",
-            "provider": "OKTA",
-            "vendorName": "OKTA",
-            "profile": {
-                "credentialId": "jane.doe@example.com",
-                "deviceType": "SmartPhone_IPhone",
-                "keys": [
+            "stateToken": "00Wf8xZJ79mSoTYnJqXbvRegT8QB1EX1IBVk1TU7KI",
+            "type": "SESSION_STEP_UP",
+            "expiresAt": "2017-06-15T22:32:40.000Z",
+            "status": "MFA_CHALLENGE",
+            "factorResult": "WAITING",
+            "_embedded": {
+                "user": {
+                    "id": "00u8p8560rXMQ95cP0h7",
+                    "profile": {
+                        "login": "jane.doe@example.com",
+                        "firstName": "Jane",
+                        "lastName": "Doe",
+                        "locale": "en",
+                        "timeZone": "America/Los_Angeles",
+                    },
+                },
+                "factor": {
+                    "id": "opf9ei43pbAgb2qgc0h7",
+                    "factorType": "push",
+                    "provider": "OKTA",
+                    "vendorName": "OKTA",
+                    "profile": {
+                        "credentialId": "jane.doe@example.com",
+                        "deviceType": "SmartPhone_IPhone",
+                        "keys": [
+                            {
+                                "kty": "PKIX",
+                                "use": "sig",
+                                "kid": "default",
+                                "x5c": ["fdsfsdfsdfsd"],
+                            }
+                        ],
+                        "name": "Jane.Doe iPhone",
+                        "platform": "IOS",
+                        "version": "10.2.1",
+                    },
+                },
+                "policy": {
+                    "allowRememberDevice": False,
+                    "rememberDeviceLifetimeInMinutes": 0,
+                    "rememberDeviceByDefault": False,
+                },
+                "target": {
+                    "type": "APP",
+                    "name": "gimmecredstest",
+                    "label": "Gimme-Creds-Test",
+                    "_links": {
+                        "logo": {
+                            "name": "medium",
+                            "href": "https://op1static.oktacdn.com/bc/globalFileStoreRecord?id=gfsatgifysE8NG37F0h7",
+                            "type": "image/png",
+                        }
+                    },
+                },
+            },
+            "_links": {
+                "next": {
+                    "name": "poll",
+                    "href": "https://example.okta.com/api/v1/authn/factors/opf9ei43pbAgb2qgc0h7/verify",
+                    "hints": {"allow": ["POST"]},
+                },
+                "cancel": {
+                    "href": "https://example.okta.com/api/v1/authn/cancel",
+                    "hints": {"allow": ["POST"]},
+                },
+                "prev": {
+                    "href": "https://example.okta.com/api/v1/authn/previous",
+                    "hints": {"allow": ["POST"]},
+                },
+                "resend": [
                     {
-                        "kty": "PKIX",
-                        "use": "sig",
-                        "kid": "default",
-                        "x5c": [
-                            "fdsfsdfsdfsd"
-                        ]
+                        "name": "push",
+                        "href": "https://example.okta.com/api/v1/authn/factors/opf9ei43pbAgb2qgc0h7/verify/resend",
+                        "hints": {"allow": ["POST"]},
                     }
                 ],
-                "name": "Jane.Doe iPhone",
-                "platform": "IOS",
-                "version": "10.2.1"
-            }
-        },
-        "policy": {
-            "allowRememberDevice": False,
-            "rememberDeviceLifetimeInMinutes": 0,
-            "rememberDeviceByDefault": False
-        },
-        "target": {
-            "type": "APP",
-            "name": "gimmecredstest",
-            "label": "Gimme-Creds-Test",
-            "_links": {
-                "logo": {
-                    "name": "medium",
-                    "href": "https://op1static.oktacdn.com/bc/globalFileStoreRecord?id=gfsatgifysE8NG37F0h7",
-                    "type": "image/png"
-                }
-            }
+            },
         }
-    },
-    "_links": {
-        "next": {
-            "name": "poll",
-            "href": "https://example.okta.com/api/v1/authn/factors/opf9ei43pbAgb2qgc0h7/verify",
-            "hints": {
-                "allow": [
-                    "POST"
-                ]
-            }
-        },
-        "cancel": {
-            "href": "https://example.okta.com/api/v1/authn/cancel",
-            "hints": {
-                "allow": [
-                    "POST"
-                ]
-            }
-        },
-        "prev": {
-            "href": "https://example.okta.com/api/v1/authn/previous",
-            "hints": {
-                "allow": [
-                    "POST"
-                ]
-            }
-        },
-        "resend": [
-            {
-                "name": "push",
-                "href": "https://example.okta.com/api/v1/authn/factors/opf9ei43pbAgb2qgc0h7/verify/resend",
-                "hints": {
-                    "allow": [
-                        "POST"
-                    ]
-                }
-            }
-        ]
-    }
-}
 
-        responses.add(responses.POST, 'https://example.okta.com/api/v1/authn/factors/opf9ei43pbAgb2qgc0h7/verify', status=200, body=json.dumps(verify_response))
+        responses.add(
+            responses.POST,
+            "https://example.okta.com/api/v1/authn/factors/opf9ei43pbAgb2qgc0h7/verify",
+            status=200,
+            body=json.dumps(verify_response),
+        )
         result = self.client._login_send_push(self.state_token, self.push_factor)
-        self.assertEqual(result, {'stateToken': self.state_token, 'apiResponse': verify_response})
+        self.assertEqual(
+            result, {"stateToken": self.state_token, "apiResponse": verify_response}
+        )
 
     @responses.activate
-    @patch('getpass.getpass', return_value='1234qwert')
+    @patch("getpass.getpass", return_value="1234qwert")
     def test_login_input_mfa_challenge(self, mock_pass):
         """Test that MFA works with Okta"""
 
@@ -677,8 +630,8 @@ class TestOktaClassicClient(unittest.TestCase):
                         "firstName": "Jane",
                         "lastName": "Doe",
                         "locale": "en",
-                        "timeZone": "America/Los_Angeles"
-                    }
+                        "timeZone": "America/Los_Angeles",
+                    },
                 },
                 "target": {
                     "type": "APP",
@@ -688,146 +641,155 @@ class TestOktaClassicClient(unittest.TestCase):
                         "logo": {
                             "name": "medium",
                             "href": "https://op1static.oktacdn.com/bc/globalFileStoreRecord?id=gfsatgifysE8NG37F0h7",
-                            "type": "image/png"
+                            "type": "image/png",
                         }
-                    }
-                }
+                    },
+                },
             },
             "_links": {
                 "next": {
                     "name": "original",
                     "href": "https://example.okta.com/login/step-up/redirect?stateToken=00Wf8xZJ79mSoTYnJqXbvRegT8QB1EX1IBVk1TU7KI",
-                    "hints": {
-                        "allow": [
-                            "GET"
-                        ]
-                    }
+                    "hints": {"allow": ["GET"]},
                 }
-            }
+            },
         }
-        responses.add(responses.POST, 'https://example.okta.com/api/v1/authn/factors/sms9hmdk2qvhjOQQ30h7/verify', status=200, body=json.dumps(verify_response))
-        result = self.client._login_input_mfa_challenge(self.state_token, 'https://example.okta.com/api/v1/authn/factors/sms9hmdk2qvhjOQQ30h7/verify')
-        self.assertEqual(result, {'stateToken': self.state_token, 'apiResponse': verify_response})
-
+        responses.add(
+            responses.POST,
+            "https://example.okta.com/api/v1/authn/factors/sms9hmdk2qvhjOQQ30h7/verify",
+            status=200,
+            body=json.dumps(verify_response),
+        )
+        result = self.client._login_input_mfa_challenge(
+            self.state_token,
+            "https://example.okta.com/api/v1/authn/factors/sms9hmdk2qvhjOQQ30h7/verify",
+        )
+        self.assertEqual(
+            result, {"stateToken": self.state_token, "apiResponse": verify_response}
+        )
 
     @responses.activate
     def test_check_push_result(self):
         """Test that the Okta Verify response was successful"""
 
         verify_response = {
-    "stateToken": "00Wf8xZJ79mSoTYnJqXbvRegT8QB1EX1IBVk1TU7KI",
-    "type": "SESSION_STEP_UP",
-    "expiresAt": "2017-06-15T22:32:40.000Z",
-    "status": "MFA_CHALLENGE",
-    "factorResult": "WAITING",
-    "_embedded": {
-        "user": {
-            "id": "00u8p8560rXMQ95cP0h7",
-            "profile": {
-                "login": "jane.doe@example.com",
-                "firstName": "Jane",
-                "lastName": "Doe",
-                "locale": "en",
-                "timeZone": "America/Los_Angeles"
-            }
-        },
-        "factor": {
-            "id": "opf9ei43pbAgb2qgc0h7",
-            "factorType": "push",
-            "provider": "OKTA",
-            "vendorName": "OKTA",
-            "profile": {
-                "credentialId": "jane.doe@example.com",
-                "deviceType": "SmartPhone_IPhone",
-                "keys": [
+            "stateToken": "00Wf8xZJ79mSoTYnJqXbvRegT8QB1EX1IBVk1TU7KI",
+            "type": "SESSION_STEP_UP",
+            "expiresAt": "2017-06-15T22:32:40.000Z",
+            "status": "MFA_CHALLENGE",
+            "factorResult": "WAITING",
+            "_embedded": {
+                "user": {
+                    "id": "00u8p8560rXMQ95cP0h7",
+                    "profile": {
+                        "login": "jane.doe@example.com",
+                        "firstName": "Jane",
+                        "lastName": "Doe",
+                        "locale": "en",
+                        "timeZone": "America/Los_Angeles",
+                    },
+                },
+                "factor": {
+                    "id": "opf9ei43pbAgb2qgc0h7",
+                    "factorType": "push",
+                    "provider": "OKTA",
+                    "vendorName": "OKTA",
+                    "profile": {
+                        "credentialId": "jane.doe@example.com",
+                        "deviceType": "SmartPhone_IPhone",
+                        "keys": [
+                            {
+                                "kty": "PKIX",
+                                "use": "sig",
+                                "kid": "default",
+                                "x5c": ["fdsfsdfsdfsd"],
+                            }
+                        ],
+                        "name": "Jane.Doe iPhone",
+                        "platform": "IOS",
+                        "version": "10.2.1",
+                    },
+                },
+                "policy": {
+                    "allowRememberDevice": False,
+                    "rememberDeviceLifetimeInMinutes": 0,
+                    "rememberDeviceByDefault": False,
+                },
+                "target": {
+                    "type": "APP",
+                    "name": "gimmecredstest",
+                    "label": "Gimme-Creds-Test",
+                    "_links": {
+                        "logo": {
+                            "name": "medium",
+                            "href": "https://op1static.oktacdn.com/bc/globalFileStoreRecord?id=gfsatgifysE8NG37F0h7",
+                            "type": "image/png",
+                        }
+                    },
+                },
+            },
+            "_links": {
+                "next": {
+                    "name": "poll",
+                    "href": "https://example.okta.com/api/v1/authn/factors/opf9ei43pbAgb2qgc0h7/verify",
+                    "hints": {"allow": ["POST"]},
+                },
+                "cancel": {
+                    "href": "https://example.okta.com/api/v1/authn/cancel",
+                    "hints": {"allow": ["POST"]},
+                },
+                "prev": {
+                    "href": "https://example.okta.com/api/v1/authn/previous",
+                    "hints": {"allow": ["POST"]},
+                },
+                "resend": [
                     {
-                        "kty": "PKIX",
-                        "use": "sig",
-                        "kid": "default",
-                        "x5c": [
-                            "fdsfsdfsdfsd"
-                        ]
+                        "name": "push",
+                        "href": "https://example.okta.com/api/v1/authn/factors/opf9ei43pbAgb2qgc0h7/verify/resend",
+                        "hints": {"allow": ["POST"]},
                     }
                 ],
-                "name": "Jane.Doe iPhone",
-                "platform": "IOS",
-                "version": "10.2.1"
-            }
-        },
-        "policy": {
-            "allowRememberDevice": False,
-            "rememberDeviceLifetimeInMinutes": 0,
-            "rememberDeviceByDefault": False
-        },
-        "target": {
-            "type": "APP",
-            "name": "gimmecredstest",
-            "label": "Gimme-Creds-Test",
-            "_links": {
-                "logo": {
-                    "name": "medium",
-                    "href": "https://op1static.oktacdn.com/bc/globalFileStoreRecord?id=gfsatgifysE8NG37F0h7",
-                    "type": "image/png"
-                }
-            }
+            },
         }
-    },
-    "_links": {
-        "next": {
-            "name": "poll",
-            "href": "https://example.okta.com/api/v1/authn/factors/opf9ei43pbAgb2qgc0h7/verify",
-            "hints": {
-                "allow": [
-                    "POST"
-                ]
-            }
-        },
-        "cancel": {
-            "href": "https://example.okta.com/api/v1/authn/cancel",
-            "hints": {
-                "allow": [
-                    "POST"
-                ]
-            }
-        },
-        "prev": {
-            "href": "https://example.okta.com/api/v1/authn/previous",
-            "hints": {
-                "allow": [
-                    "POST"
-                ]
-            }
-        },
-        "resend": [
-            {
-                "name": "push",
-                "href": "https://example.okta.com/api/v1/authn/factors/opf9ei43pbAgb2qgc0h7/verify/resend",
-                "hints": {
-                    "allow": [
-                        "POST"
-                    ]
-                }
-            }
-        ]
-    }
-}
 
-        responses.add(responses.POST, 'https://example.okta.com/api/v1/authn/factors/opf9ei43pbAgb2qgc0h7/verify', status=200, body=json.dumps(verify_response))
+        responses.add(
+            responses.POST,
+            "https://example.okta.com/api/v1/authn/factors/opf9ei43pbAgb2qgc0h7/verify",
+            status=200,
+            body=json.dumps(verify_response),
+        )
         result = self.client._login_send_push(self.state_token, self.push_factor)
-        self.assertEqual(result, {'stateToken': self.state_token, 'apiResponse': verify_response})
+        self.assertEqual(
+            result, {"stateToken": self.state_token, "apiResponse": verify_response}
+        )
 
     @responses.activate
-    @patch('builtins.input', return_value='ann@example.com')
-    @patch('getpass.getpass', return_value='1234qwert')
-    @patch('gimme_aws_creds.webauthn.WebAuthnClient.make_credential', return_value=(b'', AttestationObject.create(
-        PackedAttestation.FORMAT, AuthenticatorData.create(
-            hashlib.sha256(b'example.okta.com').digest(),
-            AuthenticatorData.FLAG.USER_PRESENT | AuthenticatorData.FLAG.USER_VERIFIED | AuthenticatorData.FLAG.ATTESTED,
-            0, AttestedCredentialData.create(b'pasten-aag-uuid\0', b'pasten-credential-id', {3: -7})
-        ), {'alg': -7, 'sig': b'pasten-sig'}
-    )))
-    def test_authenticator_enrollment(self, mock_input, mock_password, mock_webauthn_client):
-        """ Tests a new webauthn authenticator enrollment """
+    @patch("builtins.input", return_value="ann@example.com")
+    @patch("getpass.getpass", return_value="1234qwert")
+    @patch(
+        "gimme_aws_creds.webauthn.WebAuthnClient.make_credential",
+        return_value=(
+            b"",
+            AttestationObject.create(
+                PackedAttestation.FORMAT,
+                AuthenticatorData.create(
+                    hashlib.sha256(b"example.okta.com").digest(),
+                    AuthenticatorData.FLAG.USER_PRESENT
+                    | AuthenticatorData.FLAG.USER_VERIFIED
+                    | AuthenticatorData.FLAG.ATTESTED,
+                    0,
+                    AttestedCredentialData.create(
+                        b"pasten-aag-uuid\0", b"pasten-credential-id", {3: -7}
+                    ),
+                ),
+                {"alg": -7, "sig": b"pasten-sig"},
+            ),
+        ),
+    )
+    def test_authenticator_enrollment(
+        self, mock_input, mock_password, mock_webauthn_client
+    ):
+        """Tests a new webauthn authenticator enrollment"""
 
         setup_factors_response = """
 <!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
@@ -849,7 +811,7 @@ class TestOktaClassicClient(unittest.TestCase):
 </html>
 """
 
-        second_factor_response = '''
+        second_factor_response = """
 <!DOCTYPE html>
 <head>
 <title>Example, Inc - Extra Verification</title>
@@ -862,7 +824,7 @@ class TestOktaClassicClient(unittest.TestCase):
   var webauthn = true;
 </body>
 </html>
-'''
+"""
 
         auth_response = {
             "stateToken": "00Wf8xZJ79mSoTYnJqXbvRegT8QB1EX1IBVk1TU7KI",
@@ -877,8 +839,8 @@ class TestOktaClassicClient(unittest.TestCase):
                         "firstName": "Ann",
                         "lastName": "Pasten",
                         "locale": "en",
-                        "timeZone": "America/Los_Angeles"
-                    }
+                        "timeZone": "America/Los_Angeles",
+                    },
                 },
                 "target": {
                     "type": "APP",
@@ -888,25 +850,21 @@ class TestOktaClassicClient(unittest.TestCase):
                         "logo": {
                             "name": "medium",
                             "href": "https://op1static.oktacdn.com/bc/globalFileStoreRecord?id=gfsatgifysE8NG37F0h7",
-                            "type": "image/png"
+                            "type": "image/png",
                         }
-                    }
-                }
+                    },
+                },
             },
             "_links": {
                 "next": {
                     "name": "original",
                     "href": "https://example.okta.com/login/step-up/redirect?stateToken=00Wf8xZJ79mSoTYnJqXbvRegT8QB1EX1IBVk1TU7KI",
-                    "hints": {
-                        "allow": [
-                            "GET"
-                        ]
-                    }
+                    "hints": {"allow": ["GET"]},
                 }
-            }
+            },
         }
 
-        setup_factor_response = '''
+        setup_factor_response = """
 <!DOCTYPE html>
 <head>
 <title>Example, Inc - Extra Verification</title>
@@ -919,7 +877,7 @@ class TestOktaClassicClient(unittest.TestCase):
   var webauthn = true;
 </body>
 </html>
-'''
+"""
 
         introspect_response = {
             "status": "MFA_ENROLL",
@@ -932,8 +890,8 @@ class TestOktaClassicClient(unittest.TestCase):
                         "firstName": "Ann",
                         "lastName": "Pasten",
                         "locale": "en",
-                        "timeZone": "America/Los_Angeles"
-                    }
+                        "timeZone": "America/Los_Angeles",
+                    },
                 },
                 "factors": [
                     {
@@ -943,17 +901,13 @@ class TestOktaClassicClient(unittest.TestCase):
                         "_links": {
                             "enroll": {
                                 "href": "https://example.okta.com/api/v1/authn/factors",
-                                "hints": {
-                                    "allow": [
-                                        "POST"
-                                    ]
-                                }
+                                "hints": {"allow": ["POST"]},
                             }
                         },
                         "status": "NOT_SETUP",
                         "enrollment": "OPTIONAL",
                     }
-                ]
+                ],
             },
         }
 
@@ -968,8 +922,8 @@ class TestOktaClassicClient(unittest.TestCase):
                         "firstName": "Ann",
                         "lastName": "Pasten",
                         "locale": "en",
-                        "timeZone": "America/Los_Angeles"
-                    }
+                        "timeZone": "America/Los_Angeles",
+                    },
                 },
                 "factor": {
                     "id": "1337831cjAy4WtMOL4x6",
@@ -978,49 +932,35 @@ class TestOktaClassicClient(unittest.TestCase):
                     "vendorName": "FIDO",
                     "_embedded": {
                         "activation": {
-                            "rp": {
-                                "name": "Example, Inc"
-                            },
+                            "rp": {"name": "Example, Inc"},
                             "user": {
                                 "displayName": "Ann Pasten",
                                 "name": "ann@example.com",
-                                "id": "13373h4rlzEuUlUOY4x6"
+                                "id": "13373h4rlzEuUlUOY4x6",
                             },
                             "pubKeyCredParams": [
-                                {
-                                    "type": "public-key",
-                                    "alg": -7
-                                },
-                                {
-                                    "type": "public-key",
-                                    "alg": -257
-                                }
+                                {"type": "public-key", "alg": -7},
+                                {"type": "public-key", "alg": -257},
                             ],
                             "challenge": "QPABsCE0Xkbzlpqb6KbS",
                             "attestation": "direct",
                             "authenticatorSelection": {
                                 "userVerification": "optional",
-                                "requireResidentKey": False
+                                "requireResidentKey": False,
                             },
-                            "u2fParams": {
-                                "appid": "https://example.okta.com"
-                            },
-                            "excludeCredentials": []
+                            "u2fParams": {"appid": "https://example.okta.com"},
+                            "excludeCredentials": [],
                         }
-                    }
-                }
+                    },
+                },
             },
             "_links": {
                 "next": {
                     "name": "activate",
                     "href": "https://example.okta.com/api/v1/authn/factors/1337831cjAy4WtMOL4x6/lifecycle/activate",
-                    "hints": {
-                        "allow": [
-                            "POST"
-                        ]
-                    }
+                    "hints": {"allow": ["POST"]},
                 },
-            }
+            },
         }
 
         mfa_activation_response = {
@@ -1034,69 +974,135 @@ class TestOktaClassicClient(unittest.TestCase):
                         "firstName": "Ann",
                         "lastName": "Pasten",
                         "locale": "en",
-                        "timeZone": "America/Los_Angeles"
-                    }
+                        "timeZone": "America/Los_Angeles",
+                    },
                 }
-            }
+            },
         }
 
-        setup_fido_webauthn_url = self.okta_org_url + '/user/settings/factors/setup?factorType=FIDO_WEBAUTHN'
-        verify_password_redirect_url = self.okta_org_url + '/user/verify_password?fromURI=%2Fenduser%2Fsettings'
+        setup_fido_webauthn_url = (
+            self.okta_org_url + "/user/settings/factors/setup?factorType=FIDO_WEBAUTHN"
+        )
+        verify_password_redirect_url = (
+            self.okta_org_url + "/user/verify_password?fromURI=%2Fenduser%2Fsettings"
+        )
 
         # Request FIDO authenticator setup - get redirected to password verification
-        responses.add(responses.GET, setup_fido_webauthn_url, status=302,
-                      adding_headers={'Location': verify_password_redirect_url})
-        responses.add(responses.GET, verify_password_redirect_url, status=200, body=setup_factors_response)
-        responses.add(responses.POST, self.okta_org_url + '/user/verify_password', status=200)
+        responses.add(
+            responses.GET,
+            setup_fido_webauthn_url,
+            status=302,
+            adding_headers={"Location": verify_password_redirect_url},
+        )
+        responses.add(
+            responses.GET,
+            verify_password_redirect_url,
+            status=200,
+            body=setup_factors_response,
+        )
+        responses.add(
+            responses.POST, self.okta_org_url + "/user/verify_password", status=200
+        )
 
         # MFA for password verification
-        responses.add(responses.GET, self.okta_org_url + '/login/second-factor?fromURI=%2Fenduser%2Fsettings&'
-                                                         'forcePrompt=true&hideBgImage=true',
-                      status=200, body=second_factor_response)
-        responses.add(responses.POST, self.okta_org_url + '/api/v1/authn', status=200, body=json.dumps(auth_response))
+        responses.add(
+            responses.GET,
+            self.okta_org_url + "/login/second-factor?fromURI=%2Fenduser%2Fsettings&"
+            "forcePrompt=true&hideBgImage=true",
+            status=200,
+            body=second_factor_response,
+        )
+        responses.add(
+            responses.POST,
+            self.okta_org_url + "/api/v1/authn",
+            status=200,
+            body=json.dumps(auth_response),
+        )
 
         # Continue FIDO authenticator setup once password re-verified
-        responses.add(responses.GET, setup_fido_webauthn_url, status=200, body=setup_factor_response)
+        responses.add(
+            responses.GET,
+            setup_fido_webauthn_url,
+            status=200,
+            body=setup_factor_response,
+        )
 
         # Introspect webauthn factors
-        responses.add(responses.POST, self.okta_org_url + '/api/v1/authn/introspect', status=200,
-                      body=json.dumps(introspect_response))
+        responses.add(
+            responses.POST,
+            self.okta_org_url + "/api/v1/authn/introspect",
+            status=200,
+            body=json.dumps(introspect_response),
+        )
 
         # Enroll & Activate new webauthn factor
-        responses.add(responses.POST, introspect_response['_embedded']['factors'][0]['_links']['enroll']['href'],
-                      status=200, body=json.dumps(enrollment_response))
-        responses.add(responses.POST, enrollment_response['_links']['next']['href'], status=200,
-                      body=json.dumps(mfa_activation_response))
+        responses.add(
+            responses.POST,
+            introspect_response["_embedded"]["factors"][0]["_links"]["enroll"]["href"],
+            status=200,
+            body=json.dumps(enrollment_response),
+        )
+        responses.add(
+            responses.POST,
+            enrollment_response["_links"]["next"]["href"],
+            status=200,
+            body=json.dumps(mfa_activation_response),
+        )
 
         # Finalize factor activation
-        enrollment_finalization_redirect_url = self.okta_org_url + '/enduser/settings?enrolledFactor=FIDO_WEBAUTHN'
-        enrollment_finalization_url = self.okta_org_url + '/login/sessionCookieRedirect?' \
-                                                          'checkAccountSetupComplete=true&token={session_token}&' \
-                                                          'redirectUrl={redirect_url}'.format(
-            session_token=mfa_activation_response['sessionToken'],
-            redirect_url=quote(enrollment_finalization_redirect_url))
+        enrollment_finalization_redirect_url = (
+            self.okta_org_url + "/enduser/settings?enrolledFactor=FIDO_WEBAUTHN"
+        )
+        enrollment_finalization_url = (
+            self.okta_org_url + "/login/sessionCookieRedirect?"
+            "checkAccountSetupComplete=true&token={session_token}&"
+            "redirectUrl={redirect_url}".format(
+                session_token=mfa_activation_response["sessionToken"],
+                redirect_url=quote(enrollment_finalization_redirect_url),
+            )
+        )
 
-        responses.add(responses.GET, url=enrollment_finalization_url, status=302,
-                      adding_headers={'Location': enrollment_finalization_redirect_url})
-        responses.add(responses.GET, url=enrollment_finalization_redirect_url, status=200)
+        responses.add(
+            responses.GET,
+            url=enrollment_finalization_url,
+            status=302,
+            adding_headers={"Location": enrollment_finalization_redirect_url},
+        )
+        responses.add(
+            responses.GET, url=enrollment_finalization_redirect_url, status=200
+        )
 
         credential_id, user_name = self.client.setup_fido_authenticator()
-        assert credential_id == b'pasten-credential-id'
-        assert user_name == 'ann@example.com'
+        assert credential_id == b"pasten-credential-id"
+        assert user_name == "ann@example.com"
 
     @responses.activate
     def test_get_saml_response(self):
         """Test that the SAML reponse was successful"""
-        responses.add(responses.GET, 'https://example.okta.com/app/gimmecreds/exkatg7u9g6LJfFrZ0h7/sso/saml', status=200, body=self.login_saml)
-        result = self.client.get_saml_response('https://example.okta.com/app/gimmecreds/exkatg7u9g6LJfFrZ0h7/sso/saml')
-        self.assertEqual(result['TargetUrl'], 'https://localhost:8443/saml/SSO')
+        responses.add(
+            responses.GET,
+            "https://example.okta.com/app/gimmecreds/exkatg7u9g6LJfFrZ0h7/sso/saml",
+            status=200,
+            body=self.login_saml,
+        )
+        result = self.client.get_saml_response(
+            "https://example.okta.com/app/gimmecreds/exkatg7u9g6LJfFrZ0h7/sso/saml"
+        )
+        self.assertEqual(result["TargetUrl"], "https://localhost:8443/saml/SSO")
 
     @responses.activate
     def test_missing_saml_response(self):
         """Test that the SAML reponse was successful (failed)"""
-        responses.add(responses.GET, 'https://example.okta.com/app/gimmecreds/exkatg7u9g6LJfFrZ0h7/sso/saml', status=200, body="")
+        responses.add(
+            responses.GET,
+            "https://example.okta.com/app/gimmecreds/exkatg7u9g6LJfFrZ0h7/sso/saml",
+            status=200,
+            body="",
+        )
         with self.assertRaises(errors.GimmeAWSCredsError):
-            result = self.client.get_saml_response('https://example.okta.com/app/gimmecreds/exkatg7u9g6LJfFrZ0h7/sso/saml')
+            result = self.client.get_saml_response(
+                "https://example.okta.com/app/gimmecreds/exkatg7u9g6LJfFrZ0h7/sso/saml"
+            )
 
     # @responses.activate
     # def test_get_aws_account_info(self):
@@ -1108,123 +1114,127 @@ class TestOktaClassicClient(unittest.TestCase):
     #     result = self.client._get_aws_account_info(self.gimme_creds_server, saml_data)
     #     self.assertEqual(self.client.aws_access, self.api_results)
 
-    @patch('builtins.input', return_value='0')
+    @patch("builtins.input", return_value="0")
     def test_choose_factor_sms(self, mock_input):
-        """ Test selecting SMS as a MFA"""
+        """Test selecting SMS as a MFA"""
         result = self.client._choose_factor(self.factor_list)
         self.assertEqual(result, self.sms_factor)
 
-    @patch('builtins.input', return_value='1')
+    @patch("builtins.input", return_value="1")
     def test_choose_factor_push(self, mock_input):
-        """ Test selecting Okta Verify as a MFA"""
+        """Test selecting Okta Verify as a MFA"""
         result = self.client._choose_factor(self.factor_list)
         self.assertEqual(result, self.push_factor)
 
-    @patch('builtins.input', return_value='2')
+    @patch("builtins.input", return_value="2")
     def test_choose_factor_totp(self, mock_input):
-        """ Test selecting TOTP code as a MFA"""
+        """Test selecting TOTP code as a MFA"""
         result = self.client._choose_factor(self.factor_list)
         self.assertEqual(result, self.totp_factor)
 
-    @patch('builtins.input', return_value='4')
+    @patch("builtins.input", return_value="4")
     def test_choose_factor_totp(self, mock_input):
-        """ Test selecting email as a MFA"""
+        """Test selecting email as a MFA"""
         result = self.client._choose_factor(self.factor_list)
         self.assertEqual(result, self.email_factor)
 
-    @patch('builtins.input', return_value='12')
+    @patch("builtins.input", return_value="12")
     def test_choose_bad_factor_totp(self, mock_input):
-        """ Test selecting an invalid MFA factor"""
+        """Test selecting an invalid MFA factor"""
         with self.assertRaises(errors.GimmeAWSCredsExitBase):
             result = self.client._choose_factor(self.factor_list)
 
-    @patch('builtins.input', return_value='3')
+    @patch("builtins.input", return_value="3")
     def test_choose_factor_webauthn(self, mock_input):
-        """ Test selecting webauthn code as a MFA"""
+        """Test selecting webauthn code as a MFA"""
         result = self.client._choose_factor(self.factor_list)
         self.assertEqual(result, self.webauthn_factor)
 
-    @patch('builtins.input', return_value='a')
+    @patch("builtins.input", return_value="a")
     def test_choose_non_number_factor_totp(self, mock_input):
-        """ Test entering a non number value as MFA factor"""
+        """Test entering a non number value as MFA factor"""
         with self.assertRaises(errors.GimmeAWSCredsExitBase):
             result = self.client._choose_factor(self.factor_list)
 
     def test_choose_factor_pinned_by_id(self):
         """Pinning preferred_mfa_factor_id auto-selects the matching factor without prompting"""
-        self.client.set_preferred_mfa_factor_id(self.webauthn_factor['id'])
+        self.client.set_preferred_mfa_factor_id(self.webauthn_factor["id"])
         result = self.client._choose_factor(self.factor_list)
         self.assertEqual(result, self.webauthn_factor)
 
-    @patch('builtins.input', return_value='0')
+    @patch("builtins.input", return_value="0")
     def test_choose_factor_pinned_by_id_miss_falls_back_to_prompt(self, mock_input):
         """An unmatched factor id falls through to the interactive picker rather than failing"""
-        self.client.set_preferred_mfa_factor_id('no_such_factor_id')
+        self.client.set_preferred_mfa_factor_id("no_such_factor_id")
         result = self.client._choose_factor(self.factor_list)
         self.assertEqual(result, self.sms_factor)
 
     def test_choose_factor_pinned_by_id_overrides_type(self):
         """A pinned factor id wins over preferred_mfa_type when both are set"""
-        self.client.set_preferred_mfa_type('push')
-        self.client.set_preferred_mfa_factor_id(self.webauthn_factor['id'])
+        self.client.set_preferred_mfa_type("push")
+        self.client.set_preferred_mfa_factor_id(self.webauthn_factor["id"])
         result = self.client._choose_factor(self.factor_list)
         self.assertEqual(result, self.webauthn_factor)
 
     def test_build_factor_name_sms(self):
-        """ Test building a display name for SMS"""
+        """Test building a display name for SMS"""
         result = self.client._build_factor_name(self.sms_factor)
         self.assertEqual(result, "sms: +1 XXX-XXX-1234")
 
     def test_build_factor_name_email(self):
-        """ Test building a display name for email"""
+        """Test building a display name for email"""
         result = self.client._build_factor_name(self.email_factor)
         self.assertEqual(result, "email: example@example.com")
 
     def test_build_factor_name_push(self):
-        """ Test building a display name for push"""
+        """Test building a display name for push"""
         result = self.client._build_factor_name(self.push_factor)
         self.assertEqual(result, "Okta Verify App: SmartPhone_IPhone: Jane.Doe iPhone")
 
     def test_build_factor_name_push_without_profile(self):
-        """ Test building a display name for push without profile key"""
+        """Test building a display name for push without profile key"""
         result = self.client._build_factor_name(self.push_factor_without_profile)
         self.assertEqual(result, "Okta Verify App - push verification")
 
     def test_build_factor_name_totp(self):
-        """ Test building a display name for TOTP"""
+        """Test building a display name for TOTP"""
         result = self.client._build_factor_name(self.totp_factor)
         self.assertEqual(result, "token:software:totp( OKTA ) : jane.doe@example.com")
 
     def test_build_factor_name_hardware(self):
-        """ Test building a display name for hardware"""
+        """Test building a display name for hardware"""
         result = self.client._build_factor_name(self.hardware_factor)
         self.assertEqual(result, "token:hardware: YUBICO")
 
     def test_build_factor_name_unknown(self):
-        """ Handle an unknown MFA factor"""
+        """Handle an unknown MFA factor"""
         with self.captured_output() as (out, err):
             result = self.client._build_factor_name(self.unknown_factor)
             self.assertEqual(result, "Unknown MFA type: UNKNOWN_FACTOR")
 
     def test_build_factor_name_webauthn_unregistered(self):
-        """ Test building a display name for an unregistered webauthn factor """
+        """Test building a display name for an unregistered webauthn factor"""
         result = self.client._build_factor_name(self.webauthn_factor)
         self.assertEqual(result, "webauthn: webauthn")
 
     def test_build_factor_name_webauthn_unregistered_with_authenticator_name(self):
-        """ Test building a display name for an unregistered webauthn factor with a specified authenticator name """
+        """Test building a display name for an unregistered webauthn factor with a specified authenticator name"""
         webauthn_factor_with_authenticator_name = self.webauthn_factor.copy()
 
-        authenticator_name = 'Pasten Authenticator'
-        webauthn_factor_with_authenticator_name['profile']['authenticatorName'] = authenticator_name
+        authenticator_name = "Pasten Authenticator"
+        webauthn_factor_with_authenticator_name["profile"][
+            "authenticatorName"
+        ] = authenticator_name
 
         result = self.client._build_factor_name(self.webauthn_factor)
         self.assertEqual(result, "webauthn: " + authenticator_name)
 
-    @patch('gimme_aws_creds.registered_authenticators.RegisteredAuthenticators.get_authenticator_user',
-           return_value='jane.doe@example.com')
+    @patch(
+        "gimme_aws_creds.registered_authenticators.RegisteredAuthenticators.get_authenticator_user",
+        return_value="jane.doe@example.com",
+    )
     def test_build_factor_name_webauthn_registered(self, mock_input):
-        """ Test building a display name for a registered webauthn factor """
+        """Test building a display name for a registered webauthn factor"""
         result = self.client._build_factor_name(self.webauthn_factor)
         self.assertEqual(result, "webauthn: jane.doe@example.com")
 
@@ -1253,110 +1263,137 @@ class TestOktaClassicClient(unittest.TestCase):
     #     result = self.client.choose_app()
     #     self.assertEqual(result['name'], 'Sample AWS Account')
 
-    @patch('gimme_aws_creds.okta_classic.keyring.get_password')
-    @patch('gimme_aws_creds.okta_classic.OktaClassicClient.KEYRING_ENABLED', True)
-    @patch('builtins.input', return_value='testuser@example.com')
-    @patch('getpass.getpass', return_value='testpass123')
-    def test_get_username_password_creds_with_keyring(self, mock_pass, mock_input, mock_get_password):
+    @patch("gimme_aws_creds.okta_classic.keyring.get_password")
+    @patch("gimme_aws_creds.okta_classic.OktaClassicClient.KEYRING_ENABLED", True)
+    @patch("builtins.input", return_value="testuser@example.com")
+    @patch("getpass.getpass", return_value="testpass123")
+    def test_get_username_password_creds_with_keyring(
+        self, mock_pass, mock_input, mock_get_password
+    ):
         """Test password retrieval from keyring when available"""
         # Mock keyring.get_password to return stored password
-        mock_get_password.return_value = 'stored_password'
-        
+        mock_get_password.return_value = "stored_password"
+
         client = self.setUp_client(self.okta_org_url, False)
         client._use_keyring = True
-        
-        result = client._get_username_password_creds()
-        self.assertEqual(result['username'], 'testuser@example.com')
-        self.assertEqual(result['password'], 'stored_password')
-        mock_get_password.assert_called_once_with(client.KEYRING_SERVICE, 'testuser@example.com')
 
-    @patch('keyring.get_keyring')
-    @patch('builtins.input', return_value='testuser@example.com')
-    @patch('getpass.getpass', return_value='testpass123')
-    def test_get_username_password_creds_with_fail_keyring(self, mock_pass, mock_input, mock_get_keyring):
+        result = client._get_username_password_creds()
+        self.assertEqual(result["username"], "testuser@example.com")
+        self.assertEqual(result["password"], "stored_password")
+        mock_get_password.assert_called_once_with(
+            client.KEYRING_SERVICE, "testuser@example.com"
+        )
+
+    @patch("keyring.get_keyring")
+    @patch("builtins.input", return_value="testuser@example.com")
+    @patch("getpass.getpass", return_value="testpass123")
+    def test_get_username_password_creds_with_fail_keyring(
+        self, mock_pass, mock_input, mock_get_keyring
+    ):
         """Test password prompt when keyring is unavailable (FailKeyring)"""
         from keyring.backends.fail import Keyring as FailKeyring
-        
+
         # Mock keyring as unavailable (FailKeyring)
         mock_get_keyring.return_value = FailKeyring()
-        
+
         # Recreate client to pick up mocked keyring
-        with patch('gimme_aws_creds.okta_classic.keyring.get_keyring', return_value=FailKeyring()):
+        with patch(
+            "gimme_aws_creds.okta_classic.keyring.get_keyring",
+            return_value=FailKeyring(),
+        ):
             client = self.setUp_client(self.okta_org_url, False)
             client._use_keyring = True
-            
-            result = client._get_username_password_creds()
-            self.assertEqual(result['username'], 'testuser@example.com')
-            self.assertEqual(result['password'], 'testpass123')
 
-    @patch('gimme_aws_creds.okta_classic.keyring.set_password')
-    @patch('gimme_aws_creds.okta_classic.keyring.get_password', return_value=None)
-    @patch('gimme_aws_creds.okta_classic.OktaClassicClient.KEYRING_ENABLED', True)
-    @patch('builtins.input', side_effect=['testuser@example.com', 'y'])
-    @patch('getpass.getpass', return_value='testpass123')
-    def test_password_storage_to_keyring(self, mock_pass, mock_input, mock_get_password, mock_set_password):
+            result = client._get_username_password_creds()
+            self.assertEqual(result["username"], "testuser@example.com")
+            self.assertEqual(result["password"], "testpass123")
+
+    @patch("gimme_aws_creds.okta_classic.keyring.set_password")
+    @patch("gimme_aws_creds.okta_classic.keyring.get_password", return_value=None)
+    @patch("gimme_aws_creds.okta_classic.OktaClassicClient.KEYRING_ENABLED", True)
+    @patch("builtins.input", side_effect=["testuser@example.com", "y"])
+    @patch("getpass.getpass", return_value="testpass123")
+    def test_password_storage_to_keyring(
+        self, mock_pass, mock_input, mock_get_password, mock_set_password
+    ):
         """Test password storage to keyring when user confirms"""
         client = self.setUp_client(self.okta_org_url, False)
         client._use_keyring = True
-        
-        result = client._get_username_password_creds()
-        self.assertEqual(result['username'], 'testuser@example.com')
-        self.assertEqual(result['password'], 'testpass123')
-        mock_set_password.assert_called_once_with(client.KEYRING_SERVICE, 'testuser@example.com', 'testpass123')
 
-    @patch('keyring.delete_password')
-    @patch('keyring.get_keyring')
-    def test_delete_password_on_invalid_credentials(self, mock_get_keyring, mock_delete_password):
+        result = client._get_username_password_creds()
+        self.assertEqual(result["username"], "testuser@example.com")
+        self.assertEqual(result["password"], "testpass123")
+        mock_set_password.assert_called_once_with(
+            client.KEYRING_SERVICE, "testuser@example.com", "testpass123"
+        )
+
+    @patch("keyring.delete_password")
+    @patch("keyring.get_keyring")
+    def test_delete_password_on_invalid_credentials(
+        self, mock_get_keyring, mock_delete_password
+    ):
         """Test password deletion from keyring when credentials are invalid"""
         from keyring.backends.fail import Keyring as FailKeyring
         from keyring.errors import PasswordDeleteError
-        
+
         # Mock keyring as available
         mock_keyring_instance = unittest.mock.MagicMock()
         mock_get_keyring.return_value = mock_keyring_instance
-        
+
         # Recreate client to pick up mocked keyring
-        with patch('gimme_aws_creds.okta_classic.keyring.get_keyring', return_value=mock_keyring_instance):
+        with patch(
+            "gimme_aws_creds.okta_classic.keyring.get_keyring",
+            return_value=mock_keyring_instance,
+        ):
             client = self.setUp_client(self.okta_org_url, False)
             client._use_keyring = True
-            
+
             # Simulate invalid credentials error
-            creds = {'username': 'testuser@example.com'}
+            creds = {"username": "testuser@example.com"}
             error_response = {
-                'errorSummary': 'Invalid credentials',
-                'errorCode': 'E0000004'
+                "errorSummary": "Invalid credentials",
+                "errorCode": "E0000004",
             }
-            
+
             # Call the error handling code path
-            with patch.object(client, '_login_username_password', side_effect=errors.GimmeAWSCredsError('LOGIN ERROR', 2)):
+            with patch.object(
+                client,
+                "_login_username_password",
+                side_effect=errors.GimmeAWSCredsError("LOGIN ERROR", 2),
+            ):
                 try:
                     # This would normally call delete_password in the error handler
                     pass
                 except:
                     pass
-            
+
             # Verify delete_password would be called (actual call happens in _login_username_password error handler)
             # We can't easily test the full flow without mocking the entire login process
 
-    @patch('keyring.delete_password', side_effect=PasswordDeleteError())
-    @patch('keyring.get_keyring')
-    def test_delete_password_error_handling(self, mock_get_keyring, mock_delete_password):
+    @patch("keyring.delete_password", side_effect=PasswordDeleteError())
+    @patch("keyring.get_keyring")
+    def test_delete_password_error_handling(
+        self, mock_get_keyring, mock_delete_password
+    ):
         """Test that PasswordDeleteError is handled gracefully"""
         from keyring.backends.fail import Keyring as FailKeyring
         from keyring.errors import PasswordDeleteError
-        
+
         # Mock keyring as available
         mock_keyring_instance = unittest.mock.MagicMock()
         mock_get_keyring.return_value = mock_keyring_instance
-        
+
         # Recreate client to pick up mocked keyring
-        with patch('gimme_aws_creds.okta_classic.keyring.get_keyring', return_value=mock_keyring_instance):
+        with patch(
+            "gimme_aws_creds.okta_classic.keyring.get_keyring",
+            return_value=mock_keyring_instance,
+        ):
             client = self.setUp_client(self.okta_org_url, False)
             client._use_keyring = True
-            
+
             # PasswordDeleteError should be caught and ignored (see okta_classic.py line 411)
-            creds = {'username': 'testuser@example.com'}
-            
+            creds = {"username": "testuser@example.com"}
+
             # The error handler catches PasswordDeleteError and passes
             # This test verifies the exception type is imported and can be caught
             try:
@@ -1365,24 +1402,29 @@ class TestOktaClassicClient(unittest.TestCase):
                 # Exception is caught and ignored in actual code
                 pass
 
-    @patch('keyring.get_password', side_effect=RuntimeError('Keyring unavailable'))
-    @patch('keyring.get_keyring')
-    @patch('builtins.input', return_value='testuser@example.com')
-    @patch('getpass.getpass', return_value='testpass123')
-    def test_keyring_runtime_error_handling(self, mock_pass, mock_input, mock_get_keyring, mock_get_password):
+    @patch("keyring.get_password", side_effect=RuntimeError("Keyring unavailable"))
+    @patch("keyring.get_keyring")
+    @patch("builtins.input", return_value="testuser@example.com")
+    @patch("getpass.getpass", return_value="testpass123")
+    def test_keyring_runtime_error_handling(
+        self, mock_pass, mock_input, mock_get_keyring, mock_get_password
+    ):
         """Test that RuntimeError from keyring is handled gracefully"""
         from keyring.backends.fail import Keyring as FailKeyring
-        
+
         # Mock keyring as available but get_password raises RuntimeError
         mock_keyring_instance = unittest.mock.MagicMock()
         mock_get_keyring.return_value = mock_keyring_instance
-        
+
         # Recreate client to pick up mocked keyring
-        with patch('gimme_aws_creds.okta_classic.keyring.get_keyring', return_value=mock_keyring_instance):
+        with patch(
+            "gimme_aws_creds.okta_classic.keyring.get_keyring",
+            return_value=mock_keyring_instance,
+        ):
             client = self.setUp_client(self.okta_org_url, False)
             client._use_keyring = True
-            
+
             # RuntimeError should be caught and password prompt should be used
             result = client._get_username_password_creds()
-            self.assertEqual(result['username'], 'testuser@example.com')
-            self.assertEqual(result['password'], 'testpass123')
+            self.assertEqual(result["username"], "testuser@example.com")
+            self.assertEqual(result["password"], "testpass123")

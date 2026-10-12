@@ -9,6 +9,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and* limitations under the License.*
 """
+
 import argparse
 import configparser
 import os
@@ -21,11 +22,11 @@ from .common import user_agent
 
 class Config:
     """
-       The Config Class gets the CLI arguments, writes out the okta config file,
-       gets and returns username and password and the Okta API key.
+    The Config Class gets the CLI arguments, writes out the okta config file,
+    gets and returns username and password and the Okta API key.
 
-       A lot of this code is modified from https://github.com/nimbusscale/okta_aws_login
-       under the MIT license.
+    A lot of this code is modified from https://github.com/nimbusscale/okta_aws_login
+    under the MIT license.
     """
 
     def __init__(self, gac_ui, create_config=True, alicloud_sdk_available=False):
@@ -38,8 +39,7 @@ class Config:
         self.ui = gac_ui
         self.FILE_ROOT = self.ui.HOME
         self.OKTA_CONFIG = self.ui.environ.get(
-            'OKTA_CONFIG',
-            os.path.join(self.FILE_ROOT, '.okta_aws_login_config')
+            "OKTA_CONFIG", os.path.join(self.FILE_ROOT, ".okta_aws_login_config")
         )
         # Tracking for `--debug` output: how each config value was determined.
         # See log_resolved_configuration().
@@ -47,17 +47,17 @@ class Config:
         self._env_used_in_init = {}
         self._inheritance_chain = []
         self._profile_value_sources = {}
-        if self.ui.environ.get('OKTA_CONFIG') is not None:
-            self._env_used_in_init['OKTA_CONFIG'] = {
-                'sets': 'config file path',
-                'value': self.ui.environ.get('OKTA_CONFIG'),
+        if self.ui.environ.get("OKTA_CONFIG") is not None:
+            self._env_used_in_init["OKTA_CONFIG"] = {
+                "sets": "config file path",
+                "value": self.ui.environ.get("OKTA_CONFIG"),
             }
         self.disable_keychain = False
         self.open_browser = False
         self.action_register_device = False
         self.username = None
         self.api_key = None
-        self.conf_profile = 'DEFAULT'
+        self.conf_profile = "DEFAULT"
         self.verify_ssl_certs = True
         self.app_url = None
         self.resolve = False
@@ -71,7 +71,7 @@ class Config:
         self.action_store_json_creds = False
         self.action_setup_fido_authenticator = False
         self.action_output_format = False
-        self.output_format = 'export'
+        self.output_format = "export"
         self.force_classic = False
         self.debug = False
         self.enable_alicloud = False
@@ -79,20 +79,22 @@ class Config:
 
         if self.ui.environ.get("OKTA_USERNAME") is not None:
             self.username = self.ui.environ.get("OKTA_USERNAME")
-            self._env_used_in_init['OKTA_USERNAME'] = {
-                'sets': 'config.username',
-                'value': self.username,
+            self._env_used_in_init["OKTA_USERNAME"] = {
+                "sets": "config.username",
+                "value": self.username,
             }
 
         if self.ui.environ.get("OKTA_API_KEY") is not None:
             self.api_key = self.ui.environ.get("OKTA_API_KEY")
-            self._env_used_in_init['OKTA_API_KEY'] = {
-                'sets': 'config.api_key',
-                'value': self.api_key,
+            self._env_used_in_init["OKTA_API_KEY"] = {
+                "sets": "config.api_key",
+                "value": self.api_key,
             }
 
         if create_config and not os.path.isfile(self.OKTA_CONFIG):
-            self.ui.notify('No gimme-aws-creds configuration file found, starting first-time configuration...')
+            self.ui.notify(
+                "No gimme-aws-creds configuration file found, starting first-time configuration..."
+            )
             self.update_config_file()
 
     def get_args(self):
@@ -101,106 +103,130 @@ class Config:
             description="Gets a STS token to use for AWS or Alibaba Cloud CLI based on a SAML assertion from Okta"
         )
         parser.add_argument(
-            '--username', '-u',
+            "--username",
+            "-u",
             help="The username to use when logging into Okta. The username can "
-                 "also be set via the OKTA_USERNAME env variable. If not provided "
-                 "you will be prompted to enter a username."
+            "also be set via the OKTA_USERNAME env variable. If not provided "
+            "you will be prompted to enter a username.",
         )
         parser.add_argument(
-            '--action-configure', '--configure', '-c',
-            action='store_true',
-            help="If set, will prompt user for configuration parameters and then exit."
+            "--action-configure",
+            "--configure",
+            "-c",
+            action="store_true",
+            help="If set, will prompt user for configuration parameters and then exit.",
         )
         parser.add_argument(
-            '--action-register-device',
-            '--register-device',
-            '--register_device',
-            action='store_true',
-            help='Download a device token from Okta and add it to the configuration file.'
+            "--action-register-device",
+            "--register-device",
+            "--register_device",
+            action="store_true",
+            help="Download a device token from Okta and add it to the configuration file.",
         )
         parser.add_argument(
-            '--output-format', '-o',
-            choices=['export', 'json'],
-            help='Output credentials as either list of shell exports or lines of structured JSON.'
+            "--output-format",
+            "-o",
+            choices=["export", "json", "windows"],
+            help="Output credentials as either list of shell exports, lines of structured JSON "
+            "or PowerShell $env assignments.",
         )
         parser.add_argument(
-            '--profile', '-p',
-            help='If set, the specified configuration profile will be used instead of the default.'
+            "--profile",
+            "-p",
+            help="If set, the specified configuration profile will be used instead of the default.",
         )
         parser.add_argument(
-            '--roles',
-            help='If set, the specified role will be used instead of the aws_rolename in the profile, '
-                 'can be specified as a comma separated list, '
-                 'can be regex in format /<pattern>/. '
-                 'for example: arn:aws:iam::123456789012:role/Admin,/:210987654321:/ '
-                 'would match both account 123456789012 by ARN and 210987654321 by regexp'
+            "--roles",
+            help="If set, the specified role will be used instead of the aws_rolename in the profile, "
+            "can be specified as a comma separated list, "
+            "can be regex in format /<pattern>/. "
+            "for example: arn:aws:iam::123456789012:role/Admin,/:210987654321:/ "
+            "would match both account 123456789012 by ARN and 210987654321 by regexp",
         )
         parser.add_argument(
-            '--resolve', '-r',
-            action='store_true',
-            help='If set, perfom alias resolution.'
+            "--resolve",
+            "-r",
+            action="store_true",
+            help="If set, perfom alias resolution.",
         )
         parser.add_argument(
-            '--insecure', '-k',
-            action='store_true',
-            help='Allow connections to SSL sites without cert verification.'
+            "--insecure",
+            "-k",
+            action="store_true",
+            help="Allow connections to SSL sites without cert verification.",
         )
         parser.add_argument(
-            '--mfa-code',
+            "--mfa-code",
             help="The MFA verification code to be used with SMS or TOTP authentication methods. "
-                 "If not provided you will be prompted to enter an MFA verification code. "
-                 "Can be read from OKTA_MFA_CODE environment variable"
+            "If not provided you will be prompted to enter an MFA verification code. "
+            "Can be read from OKTA_MFA_CODE environment variable",
         )
         parser.add_argument(
-            '--remember-device', '-m',
-            action='store_true',
+            "--remember-device",
+            "-m",
+            action="store_true",
             help="The MFA device will be remembered by Okta service for a limited time, "
-                 "otherwise, you will be prompted for it every time."
+            "otherwise, you will be prompted for it every time.",
         )
         parser.add_argument(
-            '--version', action='version',
-            version='%(prog)s {}'.format(version),
-            help='gimme-aws-creds version')
-        parser.add_argument(
-            '--action-list-profiles', '--list-profiles', action='store_true',
-            help='List all the profiles under .okta_aws_login_config')
-        parser.add_argument(
-            '--action-list-roles', action='store_true',
-            help='List all the roles in the selected profile')
-        parser.add_argument(
-            '--action-store-json-creds', action='store_true',
-            help='Read credentials from stdin (in json format) and store them in ~/.aws/credentials file')
-        parser.add_argument(
-            '--action-setup-fido-authenticator', action='store_true',
-            help='Sets up a new FIDO WebAuthn authenticator in Okta'
+            "--version",
+            action="version",
+            version="%(prog)s {}".format(version),
+            help="gimme-aws-creds version",
         )
         parser.add_argument(
-            '--open-browser', action='store_true',
-            help='Automatically open a webbrowser for device authorization (Okta Identity Engine only)'
+            "--action-list-profiles",
+            "--list-profiles",
+            action="store_true",
+            help="List all the profiles under .okta_aws_login_config",
         )
         parser.add_argument(
-            '--disable-keychain', action='store_true',
-            help="Disable the use of the system keychain to store the user's password"
+            "--action-list-roles",
+            action="store_true",
+            help="List all the roles in the selected profile",
         )
         parser.add_argument(
-            '--force-classic', action='store_true',
-            help='Force the use of the Okta Classic login process (Okta Identity Engine only)'
+            "--action-store-json-creds",
+            action="store_true",
+            help="Read credentials from stdin (in json format) and store them in ~/.aws/credentials file",
         )
         parser.add_argument(
-            '--aws-cred-profile',
+            "--action-setup-fido-authenticator",
+            action="store_true",
+            help="Sets up a new FIDO WebAuthn authenticator in Okta",
+        )
+        parser.add_argument(
+            "--open-browser",
+            action="store_true",
+            help="Automatically open a webbrowser for device authorization (Okta Identity Engine only)",
+        )
+        parser.add_argument(
+            "--disable-keychain",
+            action="store_true",
+            help="Disable the use of the system keychain to store the user's password",
+        )
+        parser.add_argument(
+            "--force-classic",
+            action="store_true",
+            help="Force the use of the Okta Classic login process (Okta Identity Engine only)",
+        )
+        parser.add_argument(
+            "--aws-cred-profile",
             help="If set, overrides the cred_profile setting from the config file and the "
-                 "GIMME_AWS_CREDS_CRED_PROFILE environment variable."
+            "GIMME_AWS_CREDS_CRED_PROFILE environment variable.",
         )
         parser.add_argument(
-            '--debug', action='store_true',
-            help='Enable debug logging to show API request and response data'
+            "--debug",
+            action="store_true",
+            help="Enable debug logging to show API request and response data",
         )
         parser.add_argument(
-            '--enable-alicloud', action='store_true',
-            help='Request openid, okta.apps.sso, and interclient_access on OIE device authorization '
-                 '(Alibaba Cloud / Native-to-Web SSO alongside AWS Web SSO). '
-                 'Requires optional dependencies: pip install "gimme-aws-creds[alicloud]". '
-                 'Can also be set per-profile as enable_alicloud in the config file.'
+            "--enable-alicloud",
+            action="store_true",
+            help="Request openid, okta.apps.sso, and interclient_access on OIE device authorization "
+            "(Alibaba Cloud / Native-to-Web SSO alongside AWS Web SSO). "
+            'Requires optional dependencies: pip install "gimme-aws-creds[alicloud]". '
+            "Can also be set per-profile as enable_alicloud in the config file.",
         )
         args = parser.parse_args(self.ui.args)
 
@@ -208,7 +234,7 @@ class Config:
         # argparse defaults). Used by --debug output to show how each value
         # was determined.
         for action in parser._actions:
-            if action.dest in ('help', 'version'):
+            if action.dest in ("help", "version"):
                 continue
             if not hasattr(args, action.dest):
                 continue
@@ -246,33 +272,45 @@ class Config:
             self.action_output_format = args.output_format
             self.output_format = args.output_format
         if args.roles is not None:
-            self.roles = [role.strip() for role in args.roles.split(',') if role.strip()]
+            self.roles = [
+                role.strip() for role in args.roles.split(",") if role.strip()
+            ]
         self.cred_profile = args.aws_cred_profile
-        self.conf_profile = args.profile or 'DEFAULT'
+        self.conf_profile = args.profile or "DEFAULT"
 
-    def _handle_config(self, config, profile_config, include_inherits = True, profile_name=None):
+    def _handle_config(
+        self, config, profile_config, include_inherits=True, profile_name=None
+    ):
         # Track this profile in the inheritance chain (most-derived first).
         if profile_name is not None and profile_name not in self._inheritance_chain:
             self._inheritance_chain.append(profile_name)
 
         # Capture keys directly defined in this profile (before merging parents)
         # so we can correctly stamp child overrides over parent values.
-        raw_keys_in_profile = [k for k in profile_config.keys() if k != 'inherits']
+        raw_keys_in_profile = [k for k in profile_config.keys() if k != "inherits"]
 
         # Convert True/False strings to booleans
         for key in profile_config:
-            if profile_config[key] == 'True':
+            if profile_config[key] == "True":
                 profile_config[key] = True
-            elif profile_config[key] == 'False':
+            elif profile_config[key] == "False":
                 profile_config[key] = False
 
         if "inherits" in profile_config.keys() and include_inherits:
             self.ui.message("Using inherited config: " + profile_config["inherits"])
             if profile_config["inherits"] not in config:
-                raise errors.GimmeAWSCredsError(self.conf_profile + " inherits from " + profile_config["inherits"] + ", but could not find " + profile_config["inherits"])
+                raise errors.GimmeAWSCredsError(
+                    self.conf_profile
+                    + " inherits from "
+                    + profile_config["inherits"]
+                    + ", but could not find "
+                    + profile_config["inherits"]
+                )
             parent_name = profile_config["inherits"]
             profile_config = {
-                **self._handle_config(config, dict(config[parent_name]), profile_name=parent_name),
+                **self._handle_config(
+                    config, dict(config[parent_name]), profile_name=parent_name
+                ),
                 **profile_config,
             }
             del profile_config["inherits"]
@@ -285,12 +323,15 @@ class Config:
                     self._profile_value_sources[key] = profile_name
 
         # Empty string in force_classic should be handled as True - this makes sure that migrating from Classic to OIE is seamless
-        if profile_config.get('force_classic') == '' or profile_config.get('force_classic') is None:
-            profile_config['force_classic'] = True
+        if (
+            profile_config.get("force_classic") == ""
+            or profile_config.get("force_classic") is None
+        ):
+            profile_config["force_classic"] = True
 
         return profile_config
 
-    def get_config_dict(self, include_inherits = True):
+    def get_config_dict(self, include_inherits=True):
         """returns the conf dict from the okta config file"""
         # Check to see if config file exists, if not complain and exit
         # If config file does exist return config dict from file
@@ -300,37 +341,47 @@ class Config:
 
             try:
                 profile_config = dict(config[self.conf_profile])
-                self.fail_if_profile_not_found(profile_config, self.conf_profile, config.default_section)
-                return self._handle_config(config, profile_config, include_inherits, profile_name=self.conf_profile)
+                self.fail_if_profile_not_found(
+                    profile_config, self.conf_profile, config.default_section
+                )
+                return self._handle_config(
+                    config,
+                    profile_config,
+                    include_inherits,
+                    profile_name=self.conf_profile,
+                )
             except KeyError:
                 if self.action_configure:
                     return {}
                 raise errors.GimmeAWSCredsError(
-                    'Configuration profile not found! Use the --action-configure flag to generate the profile.')
-        raise errors.GimmeAWSCredsError('Configuration file not found! Use the --action-configure flag to generate file.')
+                    "Configuration profile not found! Use the --action-configure flag to generate the profile."
+                )
+        raise errors.GimmeAWSCredsError(
+            "Configuration file not found! Use the --action-configure flag to generate file."
+        )
 
     def update_config_file(self):
         """
-           Prompts user for config details for the okta_aws_login tool.
-           Either updates existing config file or creates new one.
-           Config Options:
-                okta_org_url = Okta URL
-                gimme_creds_server = URL of the gimme-creds-server or 'internal' for local processing or 'appurl' when app url available
-                client_id = OAuth Client ID - used for the gimme-creds-server in Okta classic and user authentication in Okta Identity Engine
-                okta_auth_server = Server ID for the OAuth authorization server used by gimme-creds-server
-                write_aws_creds = Option to write creds to ~/.aws/credentials
-                cred_profile = Use DEFAULT or Role-based name as the profile in ~/.aws/credentials
-                aws_appname = (optional) Okta App Name (AWS or Alibaba Cloud)
-                aws_rolename =  (optional) AWS or Alibaba Cloud Role ARN to assume
-                okta_username = Okta username
-                aws_default_duration = Default AWS or Alibaba Cloud session duration in seconds (default: 3600)
-                preferred_mfa_type = (optional, Okta Classic only) Select this MFA device type automatically
-                preferred_mfa_factor_id = (optional, Okta Classic only) Pin a specific Okta factor by id (overrides preferred_mfa_type when matched)
-                include_path - (optional) includes the full role path to the role name for profile
-                enable_keychain = (optional, Okta Classic only) enable the use of the system keychain to store the user's password
-                enable_alicloud = (optional, OIE only) y/n - use Native-to-Web SSO scope for Alibaba Cloud RAM
-                alicloud_saml_url = (optional, Alibaba Cloud only) explicit SAML SSO URL for the Alibaba Cloud app in Okta; falls back to the app link if not set
-                alicloud_region = (optional, Alibaba Cloud only) Alibaba Cloud STS region used for AssumeRoleWithSAML (default: cn-hangzhou)
+        Prompts user for config details for the okta_aws_login tool.
+        Either updates existing config file or creates new one.
+        Config Options:
+             okta_org_url = Okta URL
+             gimme_creds_server = URL of the gimme-creds-server or 'internal' for local processing or 'appurl' when app url available
+             client_id = OAuth Client ID - used for the gimme-creds-server in Okta classic and user authentication in Okta Identity Engine
+             okta_auth_server = Server ID for the OAuth authorization server used by gimme-creds-server
+             write_aws_creds = Option to write creds to ~/.aws/credentials
+             cred_profile = Use DEFAULT or Role-based name as the profile in ~/.aws/credentials
+             aws_appname = (optional) Okta App Name (AWS or Alibaba Cloud)
+             aws_rolename =  (optional) AWS or Alibaba Cloud Role ARN to assume
+             okta_username = Okta username
+             aws_default_duration = Default AWS or Alibaba Cloud session duration in seconds (default: 3600)
+             preferred_mfa_type = (optional, Okta Classic only) Select this MFA device type automatically
+             preferred_mfa_factor_id = (optional, Okta Classic only) Pin a specific Okta factor by id (overrides preferred_mfa_type when matched)
+             include_path - (optional) includes the full role path to the role name for profile
+             enable_keychain = (optional, Okta Classic only) enable the use of the system keychain to store the user's password
+             enable_alicloud = (optional, OIE only) y/n - use Native-to-Web SSO scope for Alibaba Cloud RAM
+             alicloud_saml_url = (optional, Alibaba Cloud only) explicit SAML SSO URL for the Alibaba Cloud app in Okta; falls back to the app link if not set
+             alicloud_region = (optional, Alibaba Cloud only) Alibaba Cloud STS region used for AssumeRoleWithSAML (default: cn-hangzhou)
 
         """
         config = configparser.ConfigParser()
@@ -338,29 +389,29 @@ class Config:
             self.conf_profile = self._get_conf_profile_name(self.conf_profile)
 
         defaults = {
-            'okta_org_url': '',
-            'okta_auth_server': '',
-            'client_id': '',
-            'gimme_creds_server': 'appurl',
-            'aws_appname': '',
-            'aws_rolename': ','.join(self.roles),
-            'write_aws_creds': '',
-            'cred_profile': 'role',
-            'okta_username': '',
-            'app_url': '',
-            'resolve_aws_alias': 'n',
-            'include_path': 'n',
-            'preferred_mfa_type': '',
-            'preferred_mfa_factor_id': '',
-            'remember_device': 'n',
-            'aws_default_duration': '3600',
-            'output_format': 'export',
-            'force_classic': '',
-            'open_browser': '',
-            'enable_alicloud': 'n',
-            'alicloud_saml_url': '',
-            'alicloud_region': 'cn-hangzhou',
-            'enable_keychain': 'y'
+            "okta_org_url": "",
+            "okta_auth_server": "",
+            "client_id": "",
+            "gimme_creds_server": "appurl",
+            "aws_appname": "",
+            "aws_rolename": ",".join(self.roles),
+            "write_aws_creds": "",
+            "cred_profile": "role",
+            "okta_username": "",
+            "app_url": "",
+            "resolve_aws_alias": "n",
+            "include_path": "n",
+            "preferred_mfa_type": "",
+            "preferred_mfa_factor_id": "",
+            "remember_device": "n",
+            "aws_default_duration": "3600",
+            "output_format": "export",
+            "force_classic": "",
+            "open_browser": "",
+            "enable_alicloud": "n",
+            "alicloud_saml_url": "",
+            "alicloud_region": "cn-hangzhou",
+            "enable_keychain": "y",
         }
 
         # See if a config file already exists.
@@ -376,58 +427,96 @@ class Config:
 
         # Prompt user for config details and store in config_dict
         config_dict = defaults
-        config_dict['okta_org_url'] = self._get_org_url_entry(defaults['okta_org_url'])
+        config_dict["okta_org_url"] = self._get_org_url_entry(defaults["okta_org_url"])
         client_id_set = False
 
         # Options specific to OIE domains
-        if self._okta_platform == 'identity_engine':
-            config_dict['force_classic'] = self._get_force_classic(defaults['force_classic'])
-            if config_dict['force_classic'] is False:
-                config_dict['open_browser'] = self._get_open_browser(defaults['open_browser'])
-                config_dict['client_id'] = self._get_client_id_entry(defaults['client_id'])
-                config_dict['okta_auth_server'] = self._get_auth_server_entry(defaults['okta_auth_server'])
+        if self._okta_platform == "identity_engine":
+            config_dict["force_classic"] = self._get_force_classic(
+                defaults["force_classic"]
+            )
+            if config_dict["force_classic"] is False:
+                config_dict["open_browser"] = self._get_open_browser(
+                    defaults["open_browser"]
+                )
+                config_dict["client_id"] = self._get_client_id_entry(
+                    defaults["client_id"]
+                )
+                config_dict["okta_auth_server"] = self._get_auth_server_entry(
+                    defaults["okta_auth_server"]
+                )
                 client_id_set = True
 
             # Options specific to Alibaba Cloud
             if self._alicloud_sdk_available:
-                config_dict['enable_alicloud'] = self._get_enable_alicloud(defaults['enable_alicloud'])
-                self.enable_alicloud = config_dict['enable_alicloud']
-                if config_dict['enable_alicloud'] is True:
-                    config_dict['alicloud_saml_url'] = self._get_alicloud_saml_url(defaults['alicloud_saml_url'])
-                    config_dict['alicloud_region'] = self._get_alicloud_region(defaults['alicloud_region'])
+                config_dict["enable_alicloud"] = self._get_enable_alicloud(
+                    defaults["enable_alicloud"]
+                )
+                self.enable_alicloud = config_dict["enable_alicloud"]
+                if config_dict["enable_alicloud"] is True:
+                    config_dict["alicloud_saml_url"] = self._get_alicloud_saml_url(
+                        defaults["alicloud_saml_url"]
+                    )
+                    config_dict["alicloud_region"] = self._get_alicloud_region(
+                        defaults["alicloud_region"]
+                    )
 
         # These options are only used in the Classic authentication flow
-        if self._okta_platform == 'classic' or config_dict['force_classic'] is True:
-            config_dict['okta_username'] = self._get_okta_username(defaults['okta_username'])
-            config_dict['enable_keychain'] = self._get_enable_keychain(defaults['enable_keychain'])
-            config_dict['preferred_mfa_type'] = self._get_preferred_mfa_type(defaults['preferred_mfa_type'])
-            config_dict['remember_device'] = self._get_remember_device(defaults['remember_device'])
+        if self._okta_platform == "classic" or config_dict["force_classic"] is True:
+            config_dict["okta_username"] = self._get_okta_username(
+                defaults["okta_username"]
+            )
+            config_dict["enable_keychain"] = self._get_enable_keychain(
+                defaults["enable_keychain"]
+            )
+            config_dict["preferred_mfa_type"] = self._get_preferred_mfa_type(
+                defaults["preferred_mfa_type"]
+            )
+            config_dict["remember_device"] = self._get_remember_device(
+                defaults["remember_device"]
+            )
 
         # The rest of the options are used in both OIE and Classic
-        config_dict['gimme_creds_server'] = self._get_gimme_creds_server_entry(defaults['gimme_creds_server'])
-        if config_dict['gimme_creds_server'] == 'appurl':
-            config_dict['app_url'] = self._get_appurl_entry(defaults['app_url'])
-        elif config_dict['gimme_creds_server'] != 'internal':
+        config_dict["gimme_creds_server"] = self._get_gimme_creds_server_entry(
+            defaults["gimme_creds_server"]
+        )
+        if config_dict["gimme_creds_server"] == "appurl":
+            config_dict["app_url"] = self._get_appurl_entry(defaults["app_url"])
+        elif config_dict["gimme_creds_server"] != "internal":
             if client_id_set is False:
-                config_dict['client_id'] = self._get_client_id_entry(defaults['client_id'])
-                config_dict['okta_auth_server'] = self._get_auth_server_entry(defaults['okta_auth_server'])
-        config_dict['write_aws_creds'] = self._get_write_aws_creds(defaults['write_aws_creds'])
-        config_dict['include_path'] = self._get_include_path(defaults['include_path'])
-        config_dict['aws_rolename'] = self._get_aws_rolename(defaults['aws_rolename'])
-        config_dict['resolve_aws_alias'] = self._get_resolve_aws_alias(defaults['resolve_aws_alias'])
-        config_dict['aws_default_duration'] = self._get_aws_default_duration(defaults['aws_default_duration'])
-        if config_dict['gimme_creds_server'] != 'appurl':
-            config_dict['aws_appname'] = self._get_aws_appname(defaults['aws_appname'])
+                config_dict["client_id"] = self._get_client_id_entry(
+                    defaults["client_id"]
+                )
+                config_dict["okta_auth_server"] = self._get_auth_server_entry(
+                    defaults["okta_auth_server"]
+                )
+        config_dict["write_aws_creds"] = self._get_write_aws_creds(
+            defaults["write_aws_creds"]
+        )
+        config_dict["include_path"] = self._get_include_path(defaults["include_path"])
+        config_dict["aws_rolename"] = self._get_aws_rolename(defaults["aws_rolename"])
+        config_dict["resolve_aws_alias"] = self._get_resolve_aws_alias(
+            defaults["resolve_aws_alias"]
+        )
+        config_dict["aws_default_duration"] = self._get_aws_default_duration(
+            defaults["aws_default_duration"]
+        )
+        if config_dict["gimme_creds_server"] != "appurl":
+            config_dict["aws_appname"] = self._get_aws_appname(defaults["aws_appname"])
 
-        config_dict["output_format"] = ''
+        config_dict["output_format"] = ""
         if not config_dict["write_aws_creds"]:
-            config_dict['output_format'] = self._get_output_format(defaults['output_format'])
+            config_dict["output_format"] = self._get_output_format(
+                defaults["output_format"]
+            )
 
         # If write_aws_creds is True get the profile name
-        if config_dict['write_aws_creds'] is True:
-            config_dict['cred_profile'] = self._get_cred_profile(defaults['cred_profile'])
+        if config_dict["write_aws_creds"] is True:
+            config_dict["cred_profile"] = self._get_cred_profile(
+                defaults["cred_profile"]
+            )
         else:
-            config_dict['cred_profile'] = defaults['cred_profile']
+            config_dict["cred_profile"] = defaults["cred_profile"]
 
         self.write_config_file(config_dict)
 
@@ -437,48 +526,59 @@ class Config:
         config[self.conf_profile] = config_dict
 
         # write out the conf file
-        with open(self.OKTA_CONFIG, 'w') as configfile:
+        with open(self.OKTA_CONFIG, "w") as configfile:
             config.write(configfile)
 
     def _get_org_url_entry(self, default_entry):
-        """ Get and validate okta_org_url """
-        ui.default.info("Enter the Okta URL for your organization. This is https://something.okta[preview].com")
+        """Get and validate okta_org_url"""
+        ui.default.info(
+            "Enter the Okta URL for your organization. This is https://something.okta[preview].com"
+        )
         okta_org_url_valid = False
         okta_org_url = default_entry
 
         while okta_org_url_valid is False:
-            okta_org_url = self._get_user_input("Okta URL for your organization", default_entry).strip('/')
+            okta_org_url = self._get_user_input(
+                "Okta URL for your organization", default_entry
+            ).strip("/")
 
             # Validate that the URL given is an Okta domain and what the platform is
             url_parse_results = urlparse(okta_org_url)
             if url_parse_results.scheme == "https":
                 try:
                     response = requests.get(
-                        okta_org_url + '/.well-known/okta-organization',
+                        okta_org_url + "/.well-known/okta-organization",
                         headers={
-                            'Accept': 'application/json',
-                            'User-Agent': user_agent()
+                            "Accept": "application/json",
+                            "User-Agent": user_agent(),
                         },
-                        timeout=30
+                        verify=self.verify_ssl_certs,
+                        timeout=30,
                     )
 
                     response_data = response.json()
 
                     if response.status_code == 200:
-                        if response_data['pipeline'] == 'v1':
-                            self._okta_platform = 'classic'
+                        if response_data["pipeline"] == "v1":
+                            self._okta_platform = "classic"
                             okta_org_url_valid = True
                             ui.default.notify("Okta Classic domain detected")
-                        elif response_data['pipeline'] == 'idx':
-                            self._okta_platform = 'identity_engine'
+                        elif response_data["pipeline"] == "idx":
+                            self._okta_platform = "identity_engine"
                             okta_org_url_valid = True
                             ui.default.notify("Okta Identity Engine domain detected")
                         else:
-                            ui.default.error('Unknown Okta platform type: {}'.format(response_data['pipeline']))
+                            ui.default.error(
+                                "Unknown Okta platform type: {}".format(
+                                    response_data["pipeline"]
+                                )
+                            )
                     else:
                         response.raise_for_status()
-                except Exception as err:
-                    ui.default.error('{} is not a valid Okta domain'.format(okta_org_url))
+                except Exception:
+                    ui.default.error(
+                        "{} is not a valid Okta domain".format(okta_org_url)
+                    )
             else:
                 ui.default.error("Okta organization URL must be HTTPS URL")
 
@@ -487,28 +587,33 @@ class Config:
         return okta_org_url
 
     def _get_auth_server_entry(self, default_entry):
-        """ Get and validate okta_auth_server """
+        """Get and validate okta_auth_server"""
         ui.default.message(
-            "Enter the OAuth authorization server for the gimme-creds-server. If you do not know this value, contact your Okta admin")
+            "Enter the OAuth authorization server for the gimme-creds-server. If you do not know this value, contact your Okta admin"
+        )
 
         okta_auth_server = self._get_user_input("Authorization server", default_entry)
         self._okta_auth_server = okta_auth_server
 
         return okta_auth_server
-    
+
     def _get_enable_keychain(self, default_entry):
-        """ enable the use of the system keychain to store the user's password """
+        """enable the use of the system keychain to store the user's password"""
 
         while True:
             try:
-                return self._get_user_input_yes_no("Use the system keychain to store the user's password? (y/n)", default_entry)
+                return self._get_user_input_yes_no(
+                    "Use the system keychain to store the user's password? (y/n)",
+                    default_entry,
+                )
             except ValueError:
                 ui.default.warning("Enable keychain must be either y or n.")
 
     def _get_client_id_entry(self, default_entry):
-        """ Get and validate client_id """
+        """Get and validate client_id"""
         ui.default.message(
-            "Enter the OAuth Client ID for the gimme-aws-creds. This value is REQUIRED for Okta Identity Engine domains. If you do not know this value, contact your Okta admin")
+            "Enter the OAuth Client ID for the gimme-aws-creds. This value is REQUIRED for Okta Identity Engine domains. If you do not know this value, contact your Okta admin"
+        )
 
         client_id = self._get_user_input("Client ID", default_entry)
         self._client_id = client_id
@@ -516,9 +621,12 @@ class Config:
         return client_id
 
     def _get_appurl_entry(self, default_entry):
-        """ Get and validate app_url """
+        """Get and validate app_url"""
         ui.default.message(
-            "Enter the application link. This is {}/home/amazon_aws/<app_id>/something".format(self._okta_org_url))
+            "Enter the application link. This is {}/home/amazon_aws/<app_id>/something".format(
+                self._okta_org_url
+            )
+        )
         okta_app_url_valid = False
         app_url = default_entry
 
@@ -526,25 +634,34 @@ class Config:
             app_url = self._get_user_input("Application url", default_entry)
             url_parse_results = urlparse(app_url)
             okta_org_parse = urlparse(self._okta_org_url)
-            if url_parse_results.scheme == "https" and url_parse_results.hostname == okta_org_parse.hostname:
+            if (
+                url_parse_results.scheme == "https"
+                and url_parse_results.hostname == okta_org_parse.hostname
+            ):
                 okta_app_url_valid = True
             else:
                 ui.default.warning(
-                    "Okta organization URL must be HTTPS URL for {}".format(self._okta_org_url))
+                    "Okta organization URL must be HTTPS URL for {}".format(
+                        self._okta_org_url
+                    )
+                )
 
         self._app_url = app_url
 
         return app_url
 
     def _get_gimme_creds_server_entry(self, default_entry):
-        """ Get gimme_creds_server """
-        ui.default.message("Enter the URL for the gimme-creds-server, 'appurl' for an Okta Application URL or 'internal' for handling Okta APIs locally.")
+        """Get gimme_creds_server"""
+        ui.default.message(
+            "Enter the URL for the gimme-creds-server, 'appurl' for an Okta Application URL or 'internal' for handling Okta APIs locally."
+        )
         gimme_creds_server_valid = False
         gimme_creds_server = default_entry
 
         while gimme_creds_server_valid is False:
             gimme_creds_server = self._get_user_input(
-                "URL for gimme-creds-server", default_entry)
+                "URL for gimme-creds-server", default_entry
+            )
             if gimme_creds_server == "internal":
                 gimme_creds_server_valid = True
             elif gimme_creds_server == "appurl":
@@ -560,31 +677,36 @@ class Config:
         return gimme_creds_server
 
     def _get_write_aws_creds(self, default_entry):
-        """ Option to write to the ~/.aws/credentials, ~/.aliyun/config.json, or to stdout"""
+        """Option to write to the ~/.aws/credentials, ~/.aliyun/config.json, or to stdout"""
 
         if self.enable_alicloud:
             ui.default.message(
                 "Do you want to write the temporary Alibaba Cloud credentials to ~/.aliyun/config.json?"
                 "\nIf no, the credentials will be written to stdout."
-                "\nPlease answer y or n.")
+                "\nPlease answer y or n."
+            )
         else:
             ui.default.message(
                 "Do you want to write the temporary AWS credentials to ~/.aws/credentials?"
                 "\nIf no, the credentials will be written to stdout."
-                "\nPlease answer y or n.")
+                "\nPlease answer y or n."
+            )
 
         while True:
             try:
-                return self._get_user_input_yes_no("Write to Credentials file", default_entry)
+                return self._get_user_input_yes_no(
+                    "Write to Credentials file", default_entry
+                )
             except ValueError:
                 ui.default.warning("Write to Credentials file must be either y or n.")
 
     def _get_include_path(self, default_entry):
-        """ Option to include path from rolename """
+        """Option to include path from rolename"""
 
         ui.default.message(
             "Do you want to include the full role path to the role name in credential profile name?"
-            "\nPlease answer y or n.")
+            "\nPlease answer y or n."
+        )
 
         while True:
             try:
@@ -593,13 +715,15 @@ class Config:
                 ui.default.warning("Include Path must be either y or n.")
 
     def _get_resolve_aws_alias(self, default_entry):
-        """ Option to resolve account id to alias """
+        """Option to resolve account id to alias"""
         ui.default.message(
-            "Do you want to resolve account id to an alias ?"
-            "\nPlease answer y or n.")
+            "Do you want to resolve account id to an alias ?" "\nPlease answer y or n."
+        )
         while True:
             try:
-                return self._get_user_input_yes_no("Resolve account alias", default_entry)
+                return self._get_user_input_yes_no(
+                    "Resolve account alias", default_entry
+                )
             except ValueError:
                 ui.default.warning("Resolve account alias must be either y or n.")
 
@@ -614,27 +738,28 @@ class Config:
             "If set to any other value, the name of the profile will match that value."
         )
 
-        cred_profile = self._get_user_input(
-            "Credential Profile", default_entry)
+        cred_profile = self._get_user_input("Credential Profile", default_entry)
 
-        if cred_profile.lower() in ['default', 'role', 'acc', 'acc-role']:
+        if cred_profile.lower() in ["default", "role", "acc", "acc-role"]:
             cred_profile = cred_profile.lower()
 
         return cred_profile
 
     def _get_aws_appname(self, default_entry):
-        """ Get Okta App name (AWS or Alibaba Cloud) """
+        """Get Okta App name (AWS or Alibaba Cloud)"""
         ui.default.message(
             "Enter the Okta App Name (AWS or Alibaba Cloud)."
-            "\nThis is optional, you can select the App when you run the CLI.")
+            "\nThis is optional, you can select the App when you run the CLI."
+        )
         aws_appname = self._get_user_input("App Name", default_entry)
         return aws_appname
 
     def _get_aws_rolename(self, default_entry):
-        """ Get the Role ARN (AWS or Alibaba Cloud)"""
+        """Get the Role ARN (AWS or Alibaba Cloud)"""
         ui.default.message(
             "Enter the ARN for the role you want credentials for. 'all' will retrieve all roles."
-            "\nThis is optional, you can select the role when you run the CLI.")
+            "\nThis is optional, you can select the role when you run the CLI."
+        )
         aws_rolename = self._get_user_input("Role ARN", default_entry)
         return aws_rolename
 
@@ -643,27 +768,31 @@ class Config:
         ui.default.message(
             "If you'd like to assign the Okta configuration to a specific profile\n"
             "instead of to the default profile, specify the name of the profile.\n"
-            "This is optional.")
+            "This is optional."
+        )
         conf_profile = self._get_user_input(
-            "Okta Configuration Profile Name", default_entry)
+            "Okta Configuration Profile Name", default_entry
+        )
         return conf_profile
 
     def _get_okta_username(self, default_entry):
         """Get and validate okta username. [Optional]"""
         ui.default.message(
             "If you'd like to set your okta username in the config file, specify the username.\n"
-            "This is optional.")
-        okta_username = self._get_user_input(
-            "Okta User Name", default_entry)
+            "This is optional."
+        )
+        okta_username = self._get_user_input("Okta User Name", default_entry)
         return okta_username
 
     def _get_aws_default_duration(self, default_entry):
         """Get and validate the aws default session duration. [Optional]"""
         ui.default.message(
             "If you'd like to set the default session duration, specify it (in seconds).\n"
-            "This is optional and defaults to 3600 seconds.")
+            "This is optional and defaults to 3600 seconds."
+        )
         aws_default_duration = self._get_user_input(
-            "Default Session Duration (in seconds)", default_entry)
+            "Default Session Duration (in seconds)", default_entry
+        )
         return aws_default_duration
 
     def _get_preferred_mfa_type(self, default_entry):
@@ -682,28 +811,27 @@ class Config:
             - passcode - DUO uses `OKTA_MFA_CODE` or `--mfa-code` if set, or prompts user for passcode(OTP).
             """
         )
-        okta_username = self._get_user_input(
-            "Preferred MFA Device Type", default_entry)
+        okta_username = self._get_user_input("Preferred MFA Device Type", default_entry)
         return okta_username
 
     def _get_output_format(self, default_entry):
         """Get the user's preferred output format [Optional]"""
         ui.default.message("Set the tools' output format:[export, json, windows]")
         output_format = None
-        while output_format not in ('export', 'json', 'windows'):
+        while output_format not in ("export", "json", "windows"):
             output_format = self._get_user_input(
-                "Preferred output format", default_entry)
+                "Preferred output format", default_entry
+            )
         return output_format
 
     def _get_remember_device(self, default_entry):
         """Option to remember the MFA device"""
         ui.default.message(
-            "Do you want the MFA device be remembered?\n"
-            "Please answer y or n.")
+            "Do you want the MFA device be remembered?\n" "Please answer y or n."
+        )
         while True:
             try:
-                return self._get_user_input_yes_no(
-                    "Remember device", default_entry)
+                return self._get_user_input_yes_no("Remember device", default_entry)
             except ValueError:
                 ui.default.warning("Remember the MFA device must be either y or n.")
 
@@ -711,11 +839,13 @@ class Config:
         """Option to force the Okta Classic login process"""
         ui.default.message(
             "Do you want to force the Okta Classic login flow? (Okta Identity Engine domains only)\n"
-            "Please answer y or n.")
+            "Please answer y or n."
+        )
         while True:
             try:
                 return self._get_user_input_yes_no(
-                    "Force classic login flow", default_entry)
+                    "Force classic login flow", default_entry
+                )
             except ValueError:
                 ui.default.warning("Force Classic login flow must be either y or n.")
 
@@ -723,11 +853,13 @@ class Config:
         """Option to automatically open the default browser for OIE authentication"""
         ui.default.message(
             "Do you want to automatically open the default browser for authentication? (Okta Identity Engine domains only)\n"
-            "Please answer y or n.")
+            "Please answer y or n."
+        )
         while True:
             try:
                 return self._get_user_input_yes_no(
-                    "Open default browser automatically", default_entry)
+                    "Open default browser automatically", default_entry
+                )
             except ValueError:
                 ui.default.warning("Open browser must be either y or n.")
 
@@ -735,11 +867,13 @@ class Config:
         """Option to request interclient_access scope for Alibaba Cloud SSO (OIE only)."""
         ui.default.message(
             "Enable Alibaba Cloud support? This profile will be used to authenticate with Alibaba Cloud instead of AWS."
-            "\nPlease answer y or n.")
+            "\nPlease answer y or n."
+        )
         while True:
             try:
                 return self._get_user_input_yes_no(
-                    "Enable Alibaba Cloud support", default_entry)
+                    "Enable Alibaba Cloud support", default_entry
+                )
             except ValueError:
                 ui.default.warning("Enable Alibaba Cloud must be either y or n.")
 
@@ -747,28 +881,34 @@ class Config:
         """Get the Alibaba Cloud SAML SSO URL"""
         ui.default.message(
             "Enter the Alibaba Cloud SAML SSO URL."
-            "\nContact your Okta admin to get the SAML SSO URL.")
-        alicloud_saml_url = self._get_user_input("Alibaba Cloud SAML SSO URL", default_entry)
+            "\nContact your Okta admin to get the SAML SSO URL."
+        )
+        alicloud_saml_url = self._get_user_input(
+            "Alibaba Cloud SAML SSO URL", default_entry
+        )
         return alicloud_saml_url
 
     def _get_alicloud_region(self, default_entry):
         """Get the Alibaba Cloud STS region used for AssumeRoleWithSAML."""
         ui.default.message(
             "Enter the Alibaba Cloud STS region used for AssumeRoleWithSAML "
-            "(e.g. cn-hangzhou, ap-southeast-1).")
+            "(e.g. cn-hangzhou, ap-southeast-1)."
+        )
         if not default_entry:
-            default_entry = 'cn-hangzhou'
-        alicloud_region = self._get_user_input("Alibaba Cloud STS region", default_entry)
+            default_entry = "cn-hangzhou"
+        alicloud_region = self._get_user_input(
+            "Alibaba Cloud STS region", default_entry
+        )
         return alicloud_region
 
     def _get_user_input(self, message, default=None):
         """formats message to include default and then prompts user for input
         via keyboard with message. Returns user's input or if user doesn't
         enter input will return the default."""
-        if default and default != '':
+        if default and default != "":
             prompt_message = message + " [{}]: ".format(default)
         else:
-            prompt_message = message + ': '
+            prompt_message = message + ": "
 
         # print the prompt with print() rather than input() as input prompts on stderr
         user_input = self.ui.input(prompt_message)
@@ -782,23 +922,24 @@ class Config:
         if isinstance(default, str):
             default = default.lower()
 
-        if default in ('y', 'true', True):
-            default = 'y'
+        if default in ("y", "true", True):
+            default = "y"
         else:
-            default = 'n'
+            default = "n"
 
         answer = self._get_user_input(message, default=default)
         answer = answer.lower()
 
-        if answer == 'y':
+        if answer == "y":
             return True
-        if answer == 'n':
+        if answer == "n":
             return False
 
-        raise ValueError('Invalid answer: %s' % answer)
+        raise ValueError("Invalid answer: %s" % answer)
 
-    def log_resolved_configuration(self, conf_dict, env_overrides_applied=None,
-                                   cli_overrides_applied=None):
+    def log_resolved_configuration(
+        self, conf_dict, env_overrides_applied=None, cli_overrides_applied=None
+    ):
         """Emit the resolved configuration (and how each value was determined)
         via the debug logger. Intended to be called when --debug is enabled.
 
@@ -811,7 +952,7 @@ class Config:
         import logging
         from .debug_formatter import format_resolved_configuration
 
-        logger = logging.getLogger('gimme_aws_creds')
+        logger = logging.getLogger("gimme_aws_creds")
         output = format_resolved_configuration(
             config=self,
             conf_dict=conf_dict or {},
@@ -821,7 +962,7 @@ class Config:
         logger.debug(output)
 
     def clean_up(self):
-        """ clean up secret stuff"""
+        """clean up secret stuff"""
         del self.username
         del self.api_key
 
@@ -834,4 +975,5 @@ class Config:
         """
         if not profile_config and conf_profile == default_section:
             raise errors.GimmeAWSCredsError(
-                'DEFAULT profile is missing! This is profile is required when not using --profile')
+                "DEFAULT profile is missing! This is profile is required when not using --profile"
+            )

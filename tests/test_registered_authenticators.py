@@ -2,7 +2,10 @@ import json
 import os
 import unittest
 
-from gimme_aws_creds.registered_authenticators import RegisteredAuthenticators, RegisteredAuthenticator
+from gimme_aws_creds.registered_authenticators import (
+    RegisteredAuthenticators,
+    RegisteredAuthenticator,
+)
 from tests.user_interface_mock import MockUserInterface
 
 
@@ -19,7 +22,7 @@ class TestConfig(unittest.TestCase):
         assert os.path.exists(self.file_path)
 
     def test_add_authenticator_sanity(self):
-        cred_id, user = b'my-credential-id', 'my-user'
+        cred_id, user = b"my-credential-id", "my-user"
         self.registered_authenticators.add_authenticator(cred_id, user)
 
         with open(self.file_path) as f:
@@ -33,8 +36,10 @@ class TestConfig(unittest.TestCase):
         assert authenticator.user == user
 
     def test_get_authenticator_user_sanity(self):
-        cred_id, user = b'my-credential-id', 'my-user'
+        cred_id, user = b"my-credential-id", "my-user"
         self.registered_authenticators.add_authenticator(cred_id, user)
 
-        authenticator_user = self.registered_authenticators.get_authenticator_user(cred_id)
+        authenticator_user = self.registered_authenticators.get_authenticator_user(
+            cred_id
+        )
         assert authenticator_user == user

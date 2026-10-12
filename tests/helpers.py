@@ -1,4 +1,5 @@
 """Shared test utilities to reduce duplication across test modules."""
+
 import argparse
 import sys
 from contextlib import contextmanager

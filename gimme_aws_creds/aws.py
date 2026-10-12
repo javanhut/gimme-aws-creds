@@ -9,6 +9,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and* limitations under the License.*
 """
+
 import base64
 import json
 
@@ -21,8 +22,8 @@ from . import errors
 
 class AwsResolver:
     """
-       The Aws Client Class performes post request on AWS sign-in page
-       to fetch friendly names/alias for account and IAM roles
+    The Aws Client Class performes post request on AWS sign-in page
+    to fetch friendly names/alias for account and IAM roles
     """
 
     def __init__(self, verify_ssl_certs=True):
@@ -30,50 +31,51 @@ class AwsResolver:
         :param verify_ssl_certs: Enable/disable SSL verification
         """
         self._verify_ssl_certs = verify_ssl_certs
-        self._http_client = create_http_session(verify_ssl=verify_ssl_certs, allowed_methods=['POST'])
+        self._http_client = create_http_session(
+            verify_ssl=verify_ssl_certs, allowed_methods=["POST"]
+        )
 
     def get_signinpage(self, saml_token, saml_target_url):
-        """ Post SAML token to aws sign in page and get back html result"""
-        payload = {
-            'SAMLResponse': saml_token,
-            'RelayState': ''
-        }
-        
+        """Post SAML token to aws sign in page and get back html result"""
+        payload = {"SAMLResponse": saml_token, "RelayState": ""}
+
         response = self._http_client.post(
-            saml_target_url,
-            data=payload,
-            verify=self._verify_ssl_certs
+            saml_target_url, data=payload, verify=self._verify_ssl_certs
         )
         return response.text
 
     def _enumerate_saml_roles(self, assertion, saml_target_url):
         signin_page = self.get_signinpage(assertion, saml_target_url)
-        
+
         """ using the assertion to fetch aws sign-in page, parse it and return aws sts creds """
-        role_pairs = list(parse_saml_role_attributes(assertion, 'https://aws.amazon.com/SAML/Attributes/Role'))
+        role_pairs = list(
+            parse_saml_role_attributes(
+                assertion, "https://aws.amazon.com/SAML/Attributes/Role"
+            )
+        )
 
         # build a temp hash table
         table = {}
         for role_pair in role_pairs:
             idp, role = None, None
-            for field in role_pair.split(','):
-                if 'saml-provider' in field:
+            for field in role_pair.split(","):
+                if "saml-provider" in field:
                     idp = field
-                elif 'role' in field:
+                elif "role" in field:
                     role = field
             if not idp or not role:
-                raise errors.GimmeAWSCredsError('Parsing error on {}'.format(role_pair))
+                raise errors.GimmeAWSCredsError("Parsing error on {}".format(role_pair))
             else:
                 table[role] = idp
-        
+
         # init parser
-        soup = BeautifulSoup(signin_page, 'html.parser')
-        
+        soup = BeautifulSoup(signin_page, "html.parser")
+
         # find NextJS metadata
-        roles_meta_tag = soup.find('meta', {'name': 'data'})
+        roles_meta_tag = soup.find("meta", {"name": "data"})
 
         if roles_meta_tag:
-            roles_meta = roles_meta_tag['content']
+            roles_meta = roles_meta_tag["content"]
             return self._parse_nextjs_saml_roles(roles_meta, table)
 
         # Handle the case where the metadata content isn't present
@@ -81,21 +83,35 @@ class AwsResolver:
         return self._parse_legacy_saml_roles(soup, table)
 
     def _parse_nextjs_saml_roles(self, metadata, idp_table):
-        roles_accounts = json.loads(base64.b64decode(metadata).decode('utf-8'))['roles_accounts']
+        roles_accounts = json.loads(base64.b64decode(metadata).decode("utf-8"))[
+            "roles_accounts"
+        ]
 
         # Normalize pieces of string;
         result = []
 
         for account_name, roles in roles_accounts.items():
             for role_arn in roles:
-                idp, role, friendly_account_name, friendly_role_name = None, None, None, None
+                idp, role, friendly_account_name, friendly_role_name = (
+                    None,
+                    None,
+                    None,
+                    None,
+                )
                 role = role_arn.strip()  # To remove any extra spaces
                 idp = idp_table[role]
-                friendly_account_name = f'Account: {account_name}'
-                friendly_role_name = role_arn.split('/')[-1]
-                result.append(commondef.RoleSet(idp=idp, role=role, friendly_account_name=friendly_account_name, friendly_role_name=friendly_role_name))
+                friendly_account_name = f"Account: {account_name}"
+                friendly_role_name = role_arn.split("/")[-1]
+                result.append(
+                    commondef.RoleSet(
+                        idp=idp,
+                        role=role,
+                        friendly_account_name=friendly_account_name,
+                        friendly_role_name=friendly_role_name,
+                    )
+                )
         return result
-    
+
     def _parse_legacy_saml_roles(self, soup, idp_table):
         roles = soup.find_all("div", attrs={"class": "saml-role"})
 
@@ -106,21 +122,42 @@ class AwsResolver:
         if not roles:
             role = next(iter(idp_table))
             idp = idp_table[role]
-            result.append(commondef.RoleSet(idp=idp, role=role, friendly_account_name='SingleAccountName', friendly_role_name='SingleRole'))
+            result.append(
+                commondef.RoleSet(
+                    idp=idp,
+                    role=role,
+                    friendly_account_name="SingleAccountName",
+                    friendly_role_name="SingleRole",
+                )
+            )
             return result
 
         for role_item in roles:
-            idp, role, friendly_account_name, friendly_role_name = None, None, None, None
-            role = role_item.label['for']
+            idp, role, friendly_account_name, friendly_role_name = (
+                None,
+                None,
+                None,
+                None,
+            )
+            role = role_item.label["for"]
             idp = idp_table[role]
-            friendly_account_name = role_item.parent.parent.find("div").find("div").get_text()
+            friendly_account_name = (
+                role_item.parent.parent.find("div").find("div").get_text()
+            )
             friendly_role_name = role_item.label.get_text()
-            result.append(commondef.RoleSet(idp=idp, role=role, friendly_account_name=friendly_account_name, friendly_role_name=friendly_role_name))
+            result.append(
+                commondef.RoleSet(
+                    idp=idp,
+                    role=role,
+                    friendly_account_name=friendly_account_name,
+                    friendly_role_name=friendly_role_name,
+                )
+            )
         return result
 
     @staticmethod
     def _display_role(roles):
-        """ gets a list of available roles and
+        """gets a list of available roles and
         asks the user to select the role they want to assume
         """
         # Gather the roles available to the user.
@@ -133,7 +170,7 @@ class AwsResolver:
             if not current_account == last_account:
                 role_strs.append(current_account)
                 last_account = current_account
-                
-            role_strs.append('      [ {} ]: {}'.format(i, role.friendly_role_name))
+
+            role_strs.append("      [ {} ]: {}".format(i, role.friendly_role_name))
 
         return role_strs

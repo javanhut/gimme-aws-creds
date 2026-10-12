@@ -18,8 +18,13 @@ from fido2 import cose
 from fido2.client import Fido2Client, ClientError
 from fido2.hid import CtapHidDevice, STATUS
 from fido2.utils import websafe_decode
-from fido2.webauthn import PublicKeyCredentialCreationOptions, \
-    PublicKeyCredentialType, PublicKeyCredentialParameters, PublicKeyCredentialDescriptor, UserVerificationRequirement
+from fido2.webauthn import (
+    PublicKeyCredentialCreationOptions,
+    PublicKeyCredentialType,
+    PublicKeyCredentialParameters,
+    PublicKeyCredentialDescriptor,
+    UserVerificationRequirement,
+)
 from fido2.webauthn import PublicKeyCredentialRequestOptions
 
 from gimme_aws_creds.errors import NoFIDODeviceFoundError, FIDODeviceTimeoutError
@@ -29,7 +34,9 @@ from gimme_aws_creds.common import FakeAssertion
 
 
 class WebAuthnClient:
-    def __init__(self, ui, okta_org_url, challenge, credential_id=None, timeout_ms=30_000):
+    def __init__(
+        self, ui, okta_org_url, challenge, credential_id=None, timeout_ms=30_000
+    ):
         """
         :param okta_org_url: Base URL string for Okta IDP.
         :param challenge: Challenge
@@ -44,11 +51,14 @@ class WebAuthnClient:
         self._event = Event()
         self._assertions = None
         self._client_data = None
-        self._rp = {'id': okta_org_url[8:], 'name': okta_org_url[8:]}
+        self._rp = {"id": okta_org_url[8:], "name": okta_org_url[8:]}
+        self._allow_list = None
 
         if credential_id:
             self._allow_list = [
-                PublicKeyCredentialDescriptor(PublicKeyCredentialType.PUBLIC_KEY, websafe_decode(credential_id))
+                PublicKeyCredentialDescriptor(
+                    PublicKeyCredentialType.PUBLIC_KEY, websafe_decode(credential_id)
+                )
             ]
 
     def locate_device(self):
@@ -61,7 +71,7 @@ class WebAuthnClient:
 
     def on_keepalive(self, status):
         if status == STATUS.UPNEEDED and not self._has_prompted:
-            self.ui.info('\nTouch your authenticator device now...\n')
+            self.ui.info("\nTouch your authenticator device now...\n")
             self._has_prompted = True
 
     def verify(self):
@@ -70,15 +80,21 @@ class WebAuthnClient:
 
     def _verify(self, client):
         try:
-            user_verification = self._get_user_verification_requirement_from_client(client)
-            options = PublicKeyCredentialRequestOptions(challenge=self._challenge, rp_id=self._rp['id'],
-                                                        allow_credentials=self._allow_list, timeout=self._timeout_ms,
-                                                        user_verification=user_verification)
+            user_verification = self._get_user_verification_requirement_from_client(
+                client
+            )
+            options = PublicKeyCredentialRequestOptions(
+                challenge=self._challenge,
+                rp_id=self._rp["id"],
+                allow_credentials=self._allow_list,
+                timeout=self._timeout_ms,
+                user_verification=user_verification,
+            )
 
             pin = self._get_pin_from_client(client)
-            assertion_selection = client.get_assertion(options, event=self._event,
-                                                       on_keepalive=self.on_keepalive,
-                                                       pin=pin)
+            assertion_selection = client.get_assertion(
+                options, event=self._event, on_keepalive=self.on_keepalive, pin=pin
+            )
             self._assertions = assertion_selection.get_assertions()
             assert len(self._assertions) >= 0
 
@@ -87,7 +103,7 @@ class WebAuthnClient:
             self._event.set()
         except ClientError as e:
             if e.code == ClientError.ERR.DEVICE_INELIGIBLE:
-                self.ui.info('Security key is ineligible')  # TODO extract key info
+                self.ui.info("Security key is ineligible")  # TODO extract key info
                 return
 
             elif e.code != ClientError.ERR.TIMEOUT:
@@ -101,16 +117,28 @@ class WebAuthnClient:
         return self._client_data, self._attestation.with_string_keys()
 
     def _make_credential(self, client, user):
-        pub_key_cred_params = [PublicKeyCredentialParameters(PublicKeyCredentialType.PUBLIC_KEY, cose.ES256.ALGORITHM)]
-        options = PublicKeyCredentialCreationOptions(self._rp, user, self._challenge, pub_key_cred_params,
-                                                     timeout=self._timeout_ms)
+        pub_key_cred_params = [
+            PublicKeyCredentialParameters(
+                PublicKeyCredentialType.PUBLIC_KEY, cose.ES256.ALGORITHM
+            )
+        ]
+        options = PublicKeyCredentialCreationOptions(
+            self._rp,
+            user,
+            self._challenge,
+            pub_key_cred_params,
+            timeout=self._timeout_ms,
+        )
 
         pin = self._get_pin_from_client(client)
-        attestation_res = client.make_credential(options, event=self._event,
-                                                 on_keepalive=self.on_keepalive,
-                                                 pin=pin)
+        attestation_res = client.make_credential(
+            options, event=self._event, on_keepalive=self.on_keepalive, pin=pin
+        )
 
-        self._attestation, self._client_data = attestation_res.attestation_object, attestation_res.client_data
+        self._attestation, self._client_data = (
+            attestation_res.attestation_object,
+            attestation_res.client_data,
+        )
         self._event.set()
 
     def _run_in_thread(self, method, *args, **kwargs):
@@ -118,7 +146,7 @@ class WebAuthnClient:
         try:
             self.locate_device()
         except NoFIDODeviceFoundError:
-            self.ui.input('Please insert your security key and press enter...')
+            self.ui.input("Please insert your security key and press enter...")
             self.locate_device()
 
         threads = []
@@ -131,7 +159,7 @@ class WebAuthnClient:
             t.join()
 
         if not self._event.is_set():
-            self.ui.info('Operation timed out or no valid Security Key found !')
+            self.ui.info("Operation timed out or no valid Security Key found !")
             raise FIDODeviceTimeoutError
 
     def _get_pin_from_client(self, client):

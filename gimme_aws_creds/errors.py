@@ -9,6 +9,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and* limitations under the License.*
 """
+
 import sys
 
 from . import ui
@@ -44,12 +45,12 @@ class GimmeAWSCredsExitBase(Exception):
 
 
 class GimmeAWSCredsExitSuccess(GimmeAWSCredsExitBase):
-    def __init__(self, message='', return_code=0, result=''):
+    def __init__(self, message="", return_code=0, result=""):
         super().__init__(message, return_code, result)
 
 
 class GimmeAWSCredsExitError(GimmeAWSCredsExitBase):
-    def __init__(self, message='ERROR', return_code=1, output=''):
+    def __init__(self, message="ERROR", return_code=1, output=""):
         super().__init__(message, return_code, output)
 
 

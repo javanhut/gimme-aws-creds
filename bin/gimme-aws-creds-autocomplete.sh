@@ -1,4 +1,4 @@
-#/usr/bin/env bash
+#!/usr/bin/env bash
 #
 # Auto-complete script for gimme-aws-creds.
 #
@@ -36,7 +36,7 @@ gimme-aws-creds_autocomplete()
       [ ! -z "${_profiles}" ] && _suggestions=($(compgen -W "${_profiles}" "${_cur}"))
     fi
   elif [ "${_prev}" == "--output-format" ] || [ "${_prev}" == "-o" ] ; then
-    _suggestions=($(compgen -W "export json" "${_cur}"))
+    _suggestions=($(compgen -W "export json windows" "${_cur}"))
   fi
   COMPREPLY=("${_suggestions[@]}")
 }

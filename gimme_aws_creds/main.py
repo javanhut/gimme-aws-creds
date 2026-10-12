@@ -10,16 +10,15 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and* limitations under the License.*
 """
+
 # For enumerating saml roles
 # standard imports
 import asyncio
 import configparser
 import json
-import logging
 import os
 import re
 import sys
-import platform
 import concurrent.futures
 
 # extras
@@ -27,10 +26,13 @@ import boto3
 import requests
 from botocore.exceptions import ClientError
 from okta.client import Client as OktaManagementClient
-from okta.exceptions.exceptions import ApiException as OktaApiException, NotFoundException as OktaNotFoundException
+from okta.exceptions.exceptions import (
+    ApiException as OktaApiException,
+    NotFoundException as OktaNotFoundException,
+)
 
 # local imports
-from . import errors, ui, version
+from . import errors, ui
 from .aws import AwsResolver
 from .config import Config
 from .debug_formatter import setup_debug_logging
@@ -44,38 +46,40 @@ from .registered_authenticators import RegisteredAuthenticators
 from .alibaba_cloud import ALIBABA_CLOUD_SDK_AVAILABLE
 
 # Scopes needed for token exchange for Alibaba Cloud: AWS Web SSO + Native-to-Web interclient.
-ALIBABA_CLOUD_TOKEN_EXCHANGE_SCOPES = 'openid interclient_access'
+ALIBABA_CLOUD_TOKEN_EXCHANGE_SCOPES = "openid interclient_access"
+
 
 class GimmeAWSCreds:
     """
-       This is a CLI tool that gets temporary AWS credentials
-       from Okta based on the available AWS Okta Apps and roles
-       assigned to the user.
+    This is a CLI tool that gets temporary AWS credentials
+    from Okta based on the available AWS Okta Apps and roles
+    assigned to the user.
     """
+
     resolver = DefaultResolver()
     envvar_list = [
-        'AWS_DEFAULT_DURATION',
-        'CLIENT_ID',
-        'CRED_PROFILE',
-        'GIMME_AWS_CREDS_CLIENT_ID',
-        'GIMME_AWS_CREDS_CRED_PROFILE',
-        'GIMME_AWS_CREDS_OUTPUT_FORMAT',
-        'GIMME_AWS_CREDS_ENABLE_ALICLOUD',
-        'OKTA_AUTH_SERVER',
-        'OKTA_DEVICE_TOKEN',
-        'OKTA_MFA_CODE',
-        'OKTA_PASSWORD',
-        'OKTA_USERNAME',
-        'AWS_STS_REGION'
+        "AWS_DEFAULT_DURATION",
+        "CLIENT_ID",
+        "CRED_PROFILE",
+        "GIMME_AWS_CREDS_CLIENT_ID",
+        "GIMME_AWS_CREDS_CRED_PROFILE",
+        "GIMME_AWS_CREDS_OUTPUT_FORMAT",
+        "GIMME_AWS_CREDS_ENABLE_ALICLOUD",
+        "OKTA_AUTH_SERVER",
+        "OKTA_DEVICE_TOKEN",
+        "OKTA_MFA_CODE",
+        "OKTA_PASSWORD",
+        "OKTA_USERNAME",
+        "AWS_STS_REGION",
     ]
 
     envvar_conf_map = {
-        'GIMME_AWS_CREDS_CLIENT_ID': 'client_id',
-        'GIMME_AWS_CREDS_CRED_PROFILE': 'cred_profile',
-        'GIMME_AWS_CREDS_OUTPUT_FORMAT': 'output_format',
-        'GIMME_AWS_CREDS_ENABLE_ALICLOUD': 'enable_alicloud',
-        'OKTA_DEVICE_TOKEN': 'device_token',
-        'AWS_STS_REGION': 'aws_region'
+        "GIMME_AWS_CREDS_CLIENT_ID": "client_id",
+        "GIMME_AWS_CREDS_CRED_PROFILE": "cred_profile",
+        "GIMME_AWS_CREDS_OUTPUT_FORMAT": "output_format",
+        "GIMME_AWS_CREDS_ENABLE_ALICLOUD": "enable_alicloud",
+        "OKTA_DEVICE_TOKEN": "device_token",
+        "AWS_STS_REGION": "aws_region",
     }
 
     def __init__(self, ui=ui.cli):
@@ -85,12 +89,12 @@ class GimmeAWSCreds:
         self.ui = ui
         self.FILE_ROOT = self.ui.HOME
         self.ALIBABA_CLOUD_CONFIG = self.ui.environ.get(
-            'ALIBABA_CLOUD_SHARED_CREDENTIALS_FILE',
-            os.path.join(self.FILE_ROOT, '.aliyun', 'config.json')
+            "ALIBABA_CLOUD_SHARED_CREDENTIALS_FILE",
+            os.path.join(self.FILE_ROOT, ".aliyun", "config.json"),
         )
         self.AWS_CONFIG = self.ui.environ.get(
-            'AWS_SHARED_CREDENTIALS_FILE',
-            os.path.join(self.FILE_ROOT, '.aws', 'credentials')
+            "AWS_SHARED_CREDENTIALS_FILE",
+            os.path.join(self.FILE_ROOT, ".aws", "credentials"),
         )
         self._cache = {}
         self.skip_DT = False
@@ -98,11 +102,15 @@ class GimmeAWSCreds:
     def _setup_debug_logging(self):
         """Set up debug logging for HTTP requests and responses"""
         setup_debug_logging()
-        self.ui.info("Debug logging enabled - HTTP requests/responses will be displayed")
+        self.ui.info(
+            "Debug logging enabled - HTTP requests/responses will be displayed"
+        )
 
     #  this is modified code from https://github.com/nimbusscale/okta_aws_login
-    def _write_aws_credentials(self, profile, access_key, secret_key, token, expiration, credentials_file=None):
-        """ Writes the AWS STS token into the AWS credential file"""
+    def _write_aws_credentials(
+        self, profile, access_key, secret_key, token, expiration, credentials_file=None
+    ):
+        """Writes the AWS STS token into the AWS credential file"""
         # Check to see if the aws creds path exists, if not create it
         credentials_file = credentials_file or self.AWS_CONFIG
         creds_dir = os.path.dirname(credentials_file)
@@ -121,180 +129,209 @@ class GimmeAWSCreds:
         if not config.has_section(profile):
             config.add_section(profile)
 
-        config.set(profile, 'aws_access_key_id', access_key)
-        config.set(profile, 'aws_secret_access_key', secret_key)
-        config.set(profile, 'aws_session_token', token)
-        config.set(profile, 'aws_security_token', token)
-        config.set(profile, 'x_security_token_expires', expiration)
+        config.set(profile, "aws_access_key_id", access_key)
+        config.set(profile, "aws_secret_access_key", secret_key)
+        config.set(profile, "aws_session_token", token)
+        config.set(profile, "aws_security_token", token)
+        config.set(profile, "x_security_token_expires", expiration)
 
         # Write the updated config file
-        with open(credentials_file, 'w+') as configfile:
+        with open(credentials_file, "w+") as configfile:
             config.write(configfile)
         # Update file permissions to secure  sensitive credentials file
         os.chmod(credentials_file, 0o600)
-        self.ui.message('Written profile {} to {}'.format(profile, credentials_file))
-    
-    def _write_alibaba_cloud_credentials(self, profile, access_key, secret_key, token, expiration, region_id, credentials_file=None):
-        """ Writes the Alibaba Cloud STS token into ~/.aliyun/config.json"""
+        self.ui.message("Written profile {} to {}".format(profile, credentials_file))
+
+    def _write_alibaba_cloud_credentials(
+        self,
+        profile,
+        access_key,
+        secret_key,
+        token,
+        expiration,
+        region_id,
+        credentials_file=None,
+    ):
+        """Writes the Alibaba Cloud STS token into ~/.aliyun/config.json"""
         credentials_file = credentials_file or self.ALIBABA_CLOUD_CONFIG
         creds_dir = os.path.dirname(credentials_file)
 
         if not os.path.exists(creds_dir):
             os.makedirs(creds_dir)
 
-        config = {'current': '', 'profiles': []}
+        config = {"current": "", "profiles": []}
         if os.path.isfile(credentials_file):
-            with open(credentials_file, 'r') as f:
+            with open(credentials_file, "r") as f:
                 try:
                     config = json.load(f)
                 except (json.JSONDecodeError, ValueError):
-                    config = {'current': '', 'profiles': []}
+                    config = {"current": "", "profiles": []}
 
-        if not isinstance(config.get('profiles'), list):
-            config['profiles'] = []
+        if not isinstance(config.get("profiles"), list):
+            config["profiles"] = []
 
         # Set the current profile the profile we are writing to
-        config['current'] = profile
+        config["current"] = profile
 
         new_profile = {
-            'name': profile,
-            'mode': 'StsToken',
-            'access_key_id': access_key,
-            'access_key_secret': secret_key,
-            'sts_token': token,
-            'x_security_token_expires': expiration,
-            'region_id': region_id,
+            "name": profile,
+            "mode": "StsToken",
+            "access_key_id": access_key,
+            "access_key_secret": secret_key,
+            "sts_token": token,
+            "x_security_token_expires": expiration,
+            "region_id": region_id,
             "language": "en",
         }
 
         replaced = False
-        for i, p in enumerate(config['profiles']):
-            if p.get('name') == profile:
-                config['profiles'][i] = new_profile
+        for i, p in enumerate(config["profiles"]):
+            if p.get("name") == profile:
+                config["profiles"][i] = new_profile
                 replaced = True
                 break
         if not replaced:
-            config['profiles'].append(new_profile)
+            config["profiles"].append(new_profile)
 
-        if not config.get('current'):
-            config['current'] = profile
+        if not config.get("current"):
+            config["current"] = profile
 
-        with open(credentials_file, 'w') as f:
+        with open(credentials_file, "w") as f:
             json.dump(config, f, indent=2, sort_keys=False)
-            f.write('\n')
+            f.write("\n")
         os.chmod(credentials_file, 0o600)
-        self.ui.message('Written profile {} to {}'.format(profile, credentials_file))
+        self.ui.message("Written profile {} to {}".format(profile, credentials_file))
 
     def write_credentials_from_data(self, data, credentials_file=None):
         if not isinstance(data, dict):
-            self.ui.warning('json line is not a dict! ' + repr(data))
+            self.ui.warning("json line is not a dict! " + repr(data))
             return
 
-        credentials_file = credentials_file or data.get('shared_credentials_file')
-        credentials = data.get('credentials', {})
-        profile = data.get('profile', {})
+        credentials_file = credentials_file or data.get("shared_credentials_file")
+        credentials = data.get("credentials", {})
+        profile = data.get("profile", {})
 
         errs = []
         if not isinstance(profile, dict):
-            errs.append('profile is not a dict!' + repr(profile))
+            errs.append("profile is not a dict!" + repr(profile))
         else:
-            for key in ('name',):
+            for key in ("name",):
                 value = profile.get(key, None)
                 if not value:
-                    errs.append('{} is not set {} in profile! {}'.format(key, repr(value), str(profile.keys())))
+                    errs.append(
+                        "{} is not set {} in profile! {}".format(
+                            key, repr(value), str(profile.keys())
+                        )
+                    )
 
+        credentials_type = None
         if not isinstance(credentials, dict):
-            errs.append('credentials are not a dict!' + repr(credentials))
+            errs.append("credentials are not a dict!" + repr(credentials))
         else:
-            if self._alicloud_enabled() is True:
-                for key in ('access_key_id',
-                            'access_key_secret',
-                            'security_token',
-                            'expiration'):
-                    value = credentials.get(key, None)
-                    if not value:
-                        errs.append('{} is not set {} in credentials! {}'.format(key, repr(value), str(credentials.keys())))
+            # JSON written by older versions has no credentials_type and is always AWS
+            credentials_type = credentials.get("credentials_type", "aws")
+            if credentials_type == "alibaba_cloud":
+                required_keys = (
+                    "access_key_id",
+                    "access_key_secret",
+                    "security_token",
+                    "expiration",
+                )
             else:
-                for key in ('aws_access_key_id',
-                            'aws_secret_access_key',
-                            'aws_session_token',
-                            'expiration'):
-                    value = credentials.get(key, None)
-                    if not value:
-                        errs.append(
-                            '{} is not set {} in credentials! {}'.format(key, repr(value), str(credentials.keys())))
+                required_keys = (
+                    "aws_access_key_id",
+                    "aws_secret_access_key",
+                    "aws_session_token",
+                    "expiration",
+                )
+            for key in required_keys:
+                value = credentials.get(key, None)
+                if not value:
+                    errs.append(
+                        "{} is not set {} in credentials! {}".format(
+                            key, repr(value), str(credentials.keys())
+                        )
+                    )
 
         if errs:
             for error in errs:
                 self.ui.warning(error)
             return
 
-        arn = data.get('role', {}).get('arn', '<no-arn>')
-        self.ui.message('Saving {} as {}'.format(arn, profile['name']))
-        
-        if credentials['credentials_type'] == 'aws':
+        arn = data.get("role", {}).get("arn", "<no-arn>")
+        self.ui.message("Saving {} as {}".format(arn, profile["name"]))
+
+        if credentials_type == "aws":
             self._write_aws_credentials(
-            profile['name'],
-            credentials['aws_access_key_id'],
-            credentials['aws_secret_access_key'],
-            credentials['aws_session_token'],
-            credentials['expiration'],
-            credentials_file=credentials_file,
-        )
-        elif credentials['credentials_type'] == 'alibaba_cloud':
+                profile["name"],
+                credentials["aws_access_key_id"],
+                credentials["aws_secret_access_key"],
+                credentials["aws_session_token"],
+                credentials["expiration"],
+                credentials_file=credentials_file,
+            )
+        elif credentials_type == "alibaba_cloud":
             self._write_alibaba_cloud_credentials(
-                profile['name'],
-                credentials['access_key_id'],
-                credentials['access_key_secret'],
-                credentials['security_token'],
-                credentials['expiration'],
-                credentials['region_id'],
+                profile["name"],
+                credentials["access_key_id"],
+                credentials["access_key_secret"],
+                credentials["security_token"],
+                credentials["expiration"],
+                credentials.get("region_id", "cn-hangzhou"),
                 credentials_file=credentials_file,
             )
         else:
-            raise errors.GimmeAWSCredsError("Unknown credentials type: {}".format(credentials['credentials_type']))
+            raise errors.GimmeAWSCredsError(
+                "Unknown credentials type: {}".format(credentials_type)
+            )
 
     _ACS_PARTITIONS = [
-        ('signin.aws.amazon.com/saml', 'aws', 'us-east-1'),
-        ('signin.amazonaws.cn/saml', 'aws-cn', 'cn-north-1'),
-        ('signin.amazonaws-us-gov.com/saml', 'aws-us-gov', 'us-gov-east-1'),
+        ("signin.aws.amazon.com/saml", "aws", "us-east-1"),
+        ("signin.amazonaws.cn/saml", "aws-cn", "cn-north-1"),
+        ("signin.amazonaws-us-gov.com/saml", "aws-us-gov", "us-gov-east-1"),
     ]
 
     @staticmethod
     def _get_partition_and_region_from_saml_acs(saml_acs_url):
-        """ Determine the AWS partition and region by looking at the ACS endpoint URL. """
+        """Determine the AWS partition and region by looking at the ACS endpoint URL."""
         for suffix, partition, default_region in GimmeAWSCreds._ACS_PARTITIONS:
             if saml_acs_url.endswith(suffix):
-                match = re.search(r"https://(.+)\." + re.escape(suffix.split('/')[0]), saml_acs_url)
-                return (partition, match.group(1)) if match else (partition, default_region)
+                match = re.search(
+                    r"https://(.+)\." + re.escape(suffix.split("/")[0]), saml_acs_url
+                )
+                return (
+                    (partition, match.group(1))
+                    if match
+                    else (partition, default_region)
+                )
         raise errors.GimmeAWSCredsError("{} is an unknown ACS URL".format(saml_acs_url))
 
     @staticmethod
     def _get_sts_creds(partition, region, assertion, idp, role, duration=3600):
-        """ using the assertion and arns return aws sts creds """
+        """using the assertion and arns return aws sts creds"""
 
         session = boto3.session.Session(profile_name=None)
 
         # If a region was passed, use that
         if region is not None:
-            client = session.client('sts', region)
+            client = session.client("sts", region)
         # Use the first available region
         else:
-            regions = session.get_available_regions('sts', partition)
-            client = session.client('sts', regions[0])
+            regions = session.get_available_regions("sts", partition)
+            client = session.client("sts", regions[0])
 
         response = client.assume_role_with_saml(
             RoleArn=role,
             PrincipalArn=idp,
             SAMLAssertion=assertion,
-            DurationSeconds=duration
+            DurationSeconds=duration,
         )
 
-        return response['Credentials']
+        return response["Credentials"]
 
     @staticmethod
     def _call_gimme_creds_server(okta_connection, gimme_creds_server_url):
-        """ Retrieve the user's AWS accounts from the gimme_creds_server"""
+        """Retrieve the user's AWS accounts from the gimme_creds_server"""
         response = okta_connection.get(gimme_creds_server_url)
 
         # Throw an error if we didn't get any accounts back
@@ -306,38 +343,57 @@ class GimmeAWSCreds:
     @staticmethod
     def _okta_error_summary(exc):
         """Extract Okta's ``errorSummary`` from an ApiException response body, falling back to ``str(exc)``."""
-        body = getattr(exc, 'body', None) or getattr(exc, 'data', None)
+        body = getattr(exc, "body", None) or getattr(exc, "data", None)
         if not body:
             return str(exc)
         try:
-            payload = json.loads(body) if isinstance(body, (str, bytes, bytearray)) else body
+            payload = (
+                json.loads(body) if isinstance(body, (str, bytes, bytearray)) else body
+            )
         except (ValueError, TypeError):
             return str(exc)
         if isinstance(payload, dict):
-            return payload.get('errorSummary') or payload.get('error_summary') or str(exc)
+            return (
+                payload.get("errorSummary") or payload.get("error_summary") or str(exc)
+            )
         return str(exc)
 
     @staticmethod
     def _get_aws_account_info(okta_org_url, okta_api_key, username):
-        """ Call the Okta User API and process the results to return
+        """Call the Okta User API and process the results to return
         just the information we need for gimme_aws_creds"""
+
         # The Okta management SDK (>=3.x) is async-only, so drive it from a synchronous
         # entrypoint via asyncio.run.
         async def _fetch_app_links():
-            client = OktaManagementClient({'orgUrl': okta_org_url, 'token': okta_api_key})
-            try:
-                user = await client.get_user(username)
-            except OktaNotFoundException:
-                raise errors.GimmeAWSCredsError("Error: " + username + " was not found!")
-            except OktaApiException as e:
-                raise errors.GimmeAWSCredsError("Error: " + GimmeAWSCreds._okta_error_summary(e))
+            client = OktaManagementClient(
+                {"orgUrl": okta_org_url, "token": okta_api_key}
+            )
+
+            # SDK calls return (result, response, error); API errors come back in
+            # the tuple, only deserialization problems are raised.
+            def _check(err, not_found_message):
+                if err is None:
+                    return
+                if getattr(err, "status", None) == 404:
+                    raise errors.GimmeAWSCredsError(not_found_message)
+                raise errors.GimmeAWSCredsError(
+                    "Error: " + (getattr(err, "error_summary", None) or str(err))
+                )
 
             try:
-                links = await client.list_app_links(user.id)
-            except OktaNotFoundException:
-                raise errors.GimmeAWSCredsError("Error: No applications found for " + username)
+                user, _, err = await client.get_user(username)
+                _check(err, "Error: " + username + " was not found!")
+                links, _, err = await client.list_app_links(user.id)
+                _check(err, "Error: No applications found for " + username)
+            except OktaNotFoundException as e:
+                raise errors.GimmeAWSCredsError(
+                    "Error: " + username + " was not found!"
+                ) from e
             except OktaApiException as e:
-                raise errors.GimmeAWSCredsError("Error: " + GimmeAWSCreds._okta_error_summary(e))
+                raise errors.GimmeAWSCredsError(
+                    "Error: " + GimmeAWSCreds._okta_error_summary(e)
+                ) from e
 
             ui.default.info("done\n")
             return links
@@ -346,17 +402,19 @@ class GimmeAWSCreds:
 
         # Loop through the list of apps and filter it down to just the info we need
         app_list = []
-        for app in app_links:
+        for app in app_links or []:
             # All AWS connections have the same app name
-            if app.app_name == 'amazon_aws':
-                app_list.append({
-                    'id': app.id,
-                    'name': app.label,
-                    'links': {
-                        'appLink': app.link_url,
-                        'appLogo': app.logo_url,
-                    },
-                })
+            if app.app_name == "amazon_aws":
+                app_list.append(
+                    {
+                        "id": app.id,
+                        "name": app.label,
+                        "links": {
+                            "appLink": app.link_url,
+                            "appLogo": app.logo_url,
+                        },
+                    }
+                )
 
         # Throw an error if we didn't get any accounts back
         if not app_list:
@@ -366,26 +424,33 @@ class GimmeAWSCreds:
 
     @staticmethod
     def _parse_role_arn(arn):
-        """ Extracts account number, path and role name from role arn string """
-        matches = re.match(r"arn:(aws|aws-cn|aws-us-gov):iam:.*:(?P<accountid>\d{12}):role(?P<path>(/[\w/]+)?/)(?P<role>\S+)", arn)
+        """Extracts account number, path and role name from role arn string"""
+        matches = re.match(
+            r"arn:(aws|aws-cn|aws-us-gov):iam:.*:(?P<accountid>\d{12}):role(?P<path>(/[\w/]+)?/)(?P<role>\S+)",
+            arn,
+        )
         if not matches:
-            raise errors.GimmeAWSCredsError('Unrecognized AWS IAM role ARN: {}'.format(arn))
+            raise errors.GimmeAWSCredsError(
+                "Unrecognized AWS IAM role ARN: {}".format(arn)
+            )
         return {
-            'account': matches.group('accountid'),
-            'role': matches.group('role'),
-            'path': matches.group('path')
+            "account": matches.group("accountid"),
+            "role": matches.group("role"),
+            "path": matches.group("path"),
         }
 
     @staticmethod
     def _parse_ram_role_arn(arn):
         """Account id and role name from AliCloud RAM role ARN ``acs:ram::...:role/...``."""
-        matches = re.match(r'acs:ram::(?P<accountid>\d+):role/(?P<role>[^\s,]+)', arn)
+        matches = re.match(r"acs:ram::(?P<accountid>\d+):role/(?P<role>[^\s,]+)", arn)
         if not matches:
-            raise errors.GimmeAWSCredsError('Unrecognized Alibaba Cloud RAM role ARN: {}'.format(arn))
+            raise errors.GimmeAWSCredsError(
+                "Unrecognized Alibaba Cloud RAM role ARN: {}".format(arn)
+            )
         return {
-            'account': matches.group('accountid'),
-            'role': matches.group('role'),
-            'path': '/',
+            "account": matches.group("accountid"),
+            "role": matches.group("role"),
+            "path": "/",
         }
 
     def _naming_data_for_role(self, role_arn):
@@ -397,15 +462,15 @@ class GimmeAWSCreds:
 
     @staticmethod
     def _get_alias_from_friendly_name(friendly_name):
-        """ Extracts alias from friendly name string """
+        """Extracts alias from friendly name string"""
         res = None
         matches = re.match(r"Account:\s(?P<alias>.+)\s\(\d{12}\)", friendly_name)
         if matches:
-            res = matches.group('alias')
+            res = matches.group("alias")
         return res
 
     def _choose_app(self, aws_info):
-        """ gets a list of available apps and
+        """gets a list of available apps and
         ask the user to select the app they want
         to assume a roles for and returns the selection
         """
@@ -417,7 +482,7 @@ class GimmeAWSCreds:
 
         app_strs = []
         for i, app in enumerate(aws_info):
-            app_strs.append('[{}] {}'.format(i, app["name"]))
+            app_strs.append("[{}] {}".format(i, app["name"]))
 
         if app_strs:
             self.ui.message("Pick an app:")
@@ -430,12 +495,16 @@ class GimmeAWSCreds:
         selection = self._get_user_int_selection(0, len(aws_info) - 1)
 
         if selection is None:
-            raise errors.GimmeAWSCredsError("No valid selection. Expected a number between 0 and {}.".format(len(aws_info) - 1))
+            raise errors.GimmeAWSCredsError(
+                "No valid selection. Expected a number between 0 and {}.".format(
+                    len(aws_info) - 1
+                )
+            )
 
         return aws_info[selection]
 
     def _get_selected_app(self, aws_appname, aws_info):
-        """ select the application from the config file if it exists in the
+        """select the application from the config file if it exists in the
         results from Okta.  If not, present the user with a menu."""
 
         if aws_appname:
@@ -457,7 +526,7 @@ class GimmeAWSCreds:
                 selection = int(self.ui.input("Selection: "))
                 break
             except ValueError:
-                self.ui.warning('Invalid selection, must be an integer value.')
+                self.ui.warning("Invalid selection, must be an integer value.")
 
         if selection is None:
             return None
@@ -469,37 +538,47 @@ class GimmeAWSCreds:
         return selection
 
     def _get_selected_roles(self, requested_roles, aws_roles):
-        """ select the role from the config file if it exists in the
-        results from Okta.  If not, present the user with a menu. """
+        """select the role from the config file if it exists in the
+        results from Okta.  If not, present the user with a menu."""
         # 'all' is a special case - skip processing
-        if requested_roles == 'all':
+        if requested_roles == "all":
             return set(role.role for role in aws_roles)
         # check to see if a role is in the config and look for it in the results from Okta
         if requested_roles:
             ret = set()
             if isinstance(requested_roles, str):
-                requested_roles = requested_roles.split(',')
+                requested_roles = requested_roles.split(",")
 
             for role_name in requested_roles:
                 role_name = role_name.strip()
                 if not role_name:
                     continue
 
-                is_regexp = len(role_name) > 2 and role_name[0] == role_name[-1] == '/'
-                pattern = re.compile(role_name[1:-1])
+                pattern = None
+                if len(role_name) > 2 and role_name[0] == role_name[-1] == "/":
+                    try:
+                        pattern = re.compile(role_name[1:-1])
+                    except re.error as e:
+                        raise errors.GimmeAWSCredsError(
+                            "Invalid role pattern {}: {}".format(role_name, e)
+                        ) from e
                 for aws_role in aws_roles:
-                    if aws_role.role == role_name or (is_regexp and pattern.search(aws_role.role)):
+                    if aws_role.role == role_name or (
+                        pattern and pattern.search(aws_role.role)
+                    ):
                         ret.add(aws_role.role)
 
             if ret:
                 return ret
-            self.ui.error("ERROR: AWS roles [{}] not found!".format(', '.join(requested_roles)))
+            self.ui.error(
+                "ERROR: AWS roles [{}] not found!".format(", ".join(requested_roles))
+            )
 
         # Present the user with a list of roles to choose from
         return self._choose_roles(aws_roles)
 
     def _choose_roles(self, roles):
-        """ gets a list of available roles and
+        """gets a list of available roles and
         asks the user to select the role they want to assume
         """
         if not roles:
@@ -524,7 +603,11 @@ class GimmeAWSCreds:
         selections = self._get_user_int_selections_many(0, len(roles) - 1)
 
         if not selections:
-            raise errors.GimmeAWSCredsError("No valid selection. Expected numbers between 0 and {}.".format(len(roles) - 1))
+            raise errors.GimmeAWSCredsError(
+                "No valid selection. Expected numbers between 0 and {}.".format(
+                    len(roles) - 1
+                )
+            )
 
         return {roles[int(selection)].role for selection in selections}
 
@@ -532,11 +615,21 @@ class GimmeAWSCreds:
         for _ in range(max_retries):
             selections = set()
             error = False
-            input_values = self.ui.input('Selections (comma separated; specify "A" for all profiles): ').lower().split(',')
+            input_values = (
+                self.ui.input(
+                    'Selections (comma separated; specify "A" for all profiles): '
+                )
+                .lower()
+                .split(",")
+            )
 
-            if 'a' in input_values or 'all' in input_values:
-                selections = set(range(min_int, max_int+1))
-                self.ui.message("Generating credentials for profile indices {} to {} ".format(min_int, max_int))
+            if "a" in input_values or "all" in input_values:
+                selections = set(range(min_int, max_int + 1))
+                self.ui.message(
+                    "Generating credentials for profile indices {} to {} ".format(
+                        min_int, max_int
+                    )
+                )
             else:
                 for value in input_values:
                     value = value.strip()
@@ -547,7 +640,11 @@ class GimmeAWSCreds:
                     try:
                         selection = int(value)
                     except ValueError:
-                        self.ui.warning('Invalid selection {}, must be an integer value, or "A" for all profiles'.format(repr(value)))
+                        self.ui.warning(
+                            'Invalid selection {}, must be an integer value, or "A" for all profiles'.format(
+                                repr(value)
+                            )
+                        )
                         error = True
                         continue
 
@@ -555,7 +652,10 @@ class GimmeAWSCreds:
                         selections.add(value)
                     else:
                         self.ui.warning(
-                            'Selection {} out of range <{}, {}>'.format(repr(selection), min_int, max_int))
+                            "Selection {} out of range <{}, {}>".format(
+                                repr(selection), min_int, max_int
+                            )
+                        )
 
             if error:
                 continue
@@ -572,12 +672,14 @@ class GimmeAWSCreds:
             exc.handle()
 
     def generate_config(self):
-        """ generates a new configuration and populates
+        """generates a new configuration and populates
         various config caches
         """
-        self._cache['config'] = config = Config(gac_ui=self.ui, alicloud_sdk_available=ALIBABA_CLOUD_SDK_AVAILABLE)
+        self._cache["config"] = config = Config(
+            gac_ui=self.ui, alicloud_sdk_available=ALIBABA_CLOUD_SDK_AVAILABLE
+        )
         config.get_args()
-        self._cache['conf_dict'] = config.get_config_dict()
+        self._cache["conf_dict"] = config.get_config_dict()
 
         # Set up debug logging if enabled
         if config.debug:
@@ -589,8 +691,8 @@ class GimmeAWSCreds:
         cli_overrides_applied = {}
 
         if config.disable_keychain is True:
-            self.conf_dict['enable_keychain'] = False
-            cli_overrides_applied['enable_keychain'] = '--disable-keychain'
+            self.conf_dict["enable_keychain"] = False
+            cli_overrides_applied["enable_keychain"] = "--disable-keychain"
 
         for value in self.envvar_list:
             if self.ui.environ.get(value):
@@ -599,20 +701,16 @@ class GimmeAWSCreds:
                 env_overrides_applied[key] = value
 
         if config.cred_profile is not None:
-            self.conf_dict['cred_profile'] = config.cred_profile
-            cli_overrides_applied['cred_profile'] = '--aws-cred-profile'
+            self.conf_dict["cred_profile"] = config.cred_profile
+            cli_overrides_applied["cred_profile"] = "--aws-cred-profile"
 
         # AWS Default session duration ....
-        if self.conf_dict.get('aws_default_duration'):
-            self.config.aws_default_duration = int(self.conf_dict['aws_default_duration'])
+        if self.conf_dict.get("aws_default_duration"):
+            self.config.aws_default_duration = int(
+                self.conf_dict["aws_default_duration"]
+            )
         else:
             self.config.aws_default_duration = 3600
-        
-        # Alibaba Cloud Default session duration ....
-        if self.conf_dict.get('alibaba_cloud_default_duration'):
-            self.config.alibaba_cloud_default_duration = int(self.conf_dict['alibaba_cloud_default_duration'])
-        else:
-            self.config.alibaba_cloud_default_duration = 3600
 
         # Emit the resolved configuration (and how each value was determined)
         # to the debug logger before any network calls happen.
@@ -628,8 +726,8 @@ class GimmeAWSCreds:
 
     @property
     def config(self):
-        if 'config' in self._cache:
-            return self._cache['config']
+        if "config" in self._cache:
+            return self._cache["config"]
         config = self.generate_config()
         return config
 
@@ -640,22 +738,25 @@ class GimmeAWSCreds:
         """
         # noinspection PyUnusedLocal
         config = self.config
-        return self._cache['conf_dict']
+        return self._cache["conf_dict"]
 
     def _alicloud_enabled(self):
         """User requested Alibaba Cloud (config/CLI/env); does not imply SDK is installed."""
-        v = self.conf_dict.get('enable_alicloud')
+        v = self.conf_dict.get("enable_alicloud")
         if v is True:
             return True
         if isinstance(v, str):
-            return v.strip().lower() in ('true', '1', 'yes', 'y')
+            return v.strip().lower() in ("true", "1", "yes", "y")
         return False
 
     @staticmethod
     def _alibaba_cloud_sdk_installed():
         try:
             from . import alibaba_cloud as alibaba_cloud_mod
-            return bool(getattr(alibaba_cloud_mod, 'ALIBABA_CLOUD_SDK_AVAILABLE', False))
+
+            return bool(
+                getattr(alibaba_cloud_mod, "ALIBABA_CLOUD_SDK_AVAILABLE", False)
+            )
         except ImportError:
             return False
 
@@ -664,245 +765,274 @@ class GimmeAWSCreds:
             return
         if self._alibaba_cloud_sdk_installed():
             return
-        if self._cache.get('_alicloud_sdk_missing_warned'):
+        if self._cache.get("_alicloud_sdk_missing_warned"):
             return
-        self._cache['_alicloud_sdk_missing_warned'] = True
+        self._cache["_alicloud_sdk_missing_warned"] = True
         raise errors.GimmeAWSCredsError(
-            'Alibaba Cloud is enabled but optional SDK packages are not installed. '
+            "Alibaba Cloud is enabled but optional SDK packages are not installed. "
             'Install with: pip install "gimme-aws-creds[alicloud]" '
-            '(or: pip install alibabacloud_sts20150401)')
+            "(or: pip install alibabacloud_sts20150401)"
+        )
 
     def _alibaba_cloud_client(self):
         return AlibabaCloudClient(
             self.okta._http_client,
             self.okta_org_url,
-            self.conf_dict.get('client_id'),
+            self.conf_dict.get("client_id"),
             self.config.verify_ssl_certs,
         )
 
     @property
     def output_format(self):
-        return self.conf_dict.setdefault('output_format', self.config.output_format)
+        return self.conf_dict.setdefault("output_format", self.config.output_format)
 
     def set_okta_platform(self, okta_platform):
-        self._cache['okta_platform'] = okta_platform
+        self._cache["okta_platform"] = okta_platform
 
     @property
     def okta_platform(self):
-        if 'okta_platform' in self._cache:
-            return self._cache['okta_platform']
+        if "okta_platform" in self._cache:
+            return self._cache["okta_platform"]
 
         response = requests.get(
-            self.okta_org_url + '/.well-known/okta-organization',
-            headers={
-                'Accept': 'application/json',
-                'User-Agent': user_agent()
-            },
-            timeout=30
+            self.okta_org_url + "/.well-known/okta-organization",
+            headers={"Accept": "application/json", "User-Agent": user_agent()},
+            verify=self.config.verify_ssl_certs,
+            timeout=30,
         )
+        response.raise_for_status()
+        pipeline = response.json().get("pipeline")
 
-        response_data = response.json()
-
-        if response.status_code == 200:
-            if response_data['pipeline'] == 'v1':
-                ret = 'classic'
-            elif response_data['pipeline'] == 'idx':
-                ret = 'identity_engine'
-                # Force_Classic is set - treat this domain as classic
-                if self.config.force_classic is True or self.conf_dict.get('force_classic') is True:
-                    self.ui.message('Okta Classic login flow enabled')
-                    ret = 'classic'
-                    # Skip Device Token registration
-                    self.skip_DT = True
-                else:
-                    if not self.conf_dict.get('client_id'):
-                        raise errors.GimmeAWSCredsError('OAuth Client ID is required for Okta Identity Engine domains.  Try running --config again.')
+        if pipeline == "v1":
+            ret = "classic"
+        elif pipeline == "idx":
+            ret = "identity_engine"
+            # Force_Classic is set - treat this domain as classic
+            if (
+                self.config.force_classic is True
+                or self.conf_dict.get("force_classic") is True
+            ):
+                self.ui.message("Okta Classic login flow enabled")
+                ret = "classic"
+                # Skip Device Token registration
+                self.skip_DT = True
             else:
-                raise RuntimeError('Unknown Okta platform type: {}'.format(response_data['pipeline']))
+                if not self.conf_dict.get("client_id"):
+                    raise errors.GimmeAWSCredsError(
+                        "OAuth Client ID is required for Okta Identity Engine domains.  Try running --config again."
+                    )
         else:
-            response.raise_for_status()
+            raise RuntimeError("Unknown Okta platform type: {}".format(pipeline))
 
         self.set_okta_platform(ret)
         return ret
 
     @property
     def okta_org_url(self):
-        ret = self.conf_dict.get('okta_org_url')
+        ret = self.conf_dict.get("okta_org_url")
         if not ret:
-            raise errors.GimmeAWSCredsError('No Okta organization URL in configuration.  Try running --config again.')
+            raise errors.GimmeAWSCredsError(
+                "No Okta organization URL in configuration.  Try running --config again."
+            )
         return ret
 
     @property
     def gimme_creds_server(self):
-        ret = self.conf_dict.get('gimme_creds_server')
+        ret = self.conf_dict.get("gimme_creds_server")
         if not ret:
-            raise errors.GimmeAWSCredsError('No Gimme-Creds server URL in configuration.  Try running --config again.')
+            raise errors.GimmeAWSCredsError(
+                "No Gimme-Creds server URL in configuration.  Try running --config again."
+            )
         return ret
 
     @property
     def okta(self):
-        if 'okta' in self._cache:
-            return self._cache['okta']
+        if "okta" in self._cache:
+            return self._cache["okta"]
 
-        if self.okta_platform == 'identity_engine':
+        if self.okta_platform == "identity_engine":
             okta_kwargs = {
-                'gac_ui': self.ui,
-                'okta_org_url': self.okta_org_url,
-                'client_id': self.conf_dict.get('client_id'),
-                'verify_ssl_certs': self.config.verify_ssl_certs,
-                'debug': self.config.debug,
+                "gac_ui": self.ui,
+                "okta_org_url": self.okta_org_url,
+                "client_id": self.conf_dict.get("client_id"),
+                "verify_ssl_certs": self.config.verify_ssl_certs,
+                "debug": self.config.debug,
             }
             if self._alicloud_enabled() is True:
-                okta_kwargs['device_flow_scope'] = ALIBABA_CLOUD_TOKEN_EXCHANGE_SCOPES
-            okta = self._cache['okta'] = OktaIdentityEngine(**okta_kwargs)
+                okta_kwargs["device_flow_scope"] = ALIBABA_CLOUD_TOKEN_EXCHANGE_SCOPES
+            okta = self._cache["okta"] = OktaIdentityEngine(**okta_kwargs)
         else:
-            okta = self._cache['okta'] = OktaClassicClient(
+            okta = self._cache["okta"] = OktaClassicClient(
                 self.ui,
                 self.okta_org_url,
                 self.config.verify_ssl_certs,
                 self.device_token,
-                self.conf_dict.get('enable_keychain', True),
-                debug=self.config.debug
+                self.conf_dict.get("enable_keychain", True),
+                debug=self.config.debug,
             )
 
             if self.config.username is not None:
                 okta.set_username(self.config.username)
-            elif self.conf_dict.get('okta_username'):
-                okta.set_username(self.conf_dict['okta_username'])
+            elif self.conf_dict.get("okta_username"):
+                okta.set_username(self.conf_dict["okta_username"])
 
-            if self.conf_dict.get('okta_password'):
-                okta.set_password(self.conf_dict['okta_password'])
+            if self.conf_dict.get("okta_password"):
+                okta.set_password(self.conf_dict["okta_password"])
 
-            if self.conf_dict.get('preferred_mfa_type'):
-                okta.set_preferred_mfa_type(self.conf_dict['preferred_mfa_type'])
+            if self.conf_dict.get("preferred_mfa_type"):
+                okta.set_preferred_mfa_type(self.conf_dict["preferred_mfa_type"])
 
-            if self.conf_dict.get('preferred_mfa_provider'):
-                okta.set_preferred_mfa_provider(self.conf_dict['preferred_mfa_provider'])
+            if self.conf_dict.get("preferred_mfa_provider"):
+                okta.set_preferred_mfa_provider(
+                    self.conf_dict["preferred_mfa_provider"]
+                )
 
-            if self.conf_dict.get('preferred_mfa_factor_id'):
-                okta.set_preferred_mfa_factor_id(self.conf_dict['preferred_mfa_factor_id'])
+            if self.conf_dict.get("preferred_mfa_factor_id"):
+                okta.set_preferred_mfa_factor_id(
+                    self.conf_dict["preferred_mfa_factor_id"]
+                )
 
-            if self.conf_dict.get('duo_universal_factor'):
-                okta.set_duo_universal_factor(self.conf_dict.get('duo_universal_factor'))
+            if self.conf_dict.get("duo_universal_factor"):
+                okta.set_duo_universal_factor(
+                    self.conf_dict.get("duo_universal_factor")
+                )
 
             if self.config.mfa_code is not None:
                 okta.set_mfa_code(self.config.mfa_code)
-            elif self.conf_dict.get('okta_mfa_code'):
-                okta.set_mfa_code(self.conf_dict.get('okta_mfa_code'))
+            elif self.conf_dict.get("okta_mfa_code"):
+                okta.set_mfa_code(self.conf_dict.get("okta_mfa_code"))
 
-            okta.set_remember_device(self.config.remember_device
-                or self.conf_dict.get('remember_device', False))
+            okta.set_remember_device(
+                self.config.remember_device
+                or self.conf_dict.get("remember_device", False)
+            )
         return okta
 
     def get_resolver(self):
         if self.config.resolve:
             return AwsResolver(self.config.verify_ssl_certs)
-        elif str(self.conf_dict.get('resolve_aws_alias')) == 'True':
+        elif str(self.conf_dict.get("resolve_aws_alias")) == "True":
             return AwsResolver(self.config.verify_ssl_certs)
         return self.resolver
 
     @property
     def device_token(self):
         if self.config.action_register_device is True or self.skip_DT is True:
-            self.conf_dict['device_token'] = None
+            self.conf_dict["device_token"] = None
 
-        return self.conf_dict.get('device_token')
+        return self.conf_dict.get("device_token")
 
     def set_auth_session(self, auth_session):
-        self._cache['auth_session'] = auth_session
+        self._cache["auth_session"] = auth_session
 
     @property
     def auth_session(self):
-        if 'auth_session' in self._cache:
-            return self._cache['auth_session']
-        if self.config.open_browser is True or self.conf_dict.get('open_browser') is True:
+        if "auth_session" in self._cache:
+            return self._cache["auth_session"]
+        if (
+            self.config.open_browser is True
+            or self.conf_dict.get("open_browser") is True
+        ):
             open_browser = True
         else:
             open_browser = False
-        auth_result = self.okta.auth_session(redirect_uri=self.conf_dict.get('app_url'), open_browser=open_browser)
+        auth_result = self.okta.auth_session(
+            redirect_uri=self.conf_dict.get("app_url"), open_browser=open_browser
+        )
         self.set_auth_session(auth_result)
 
         return auth_result
 
     @property
     def aws_results(self):
-        if 'aws_results' in self._cache:
-            return self._cache['aws_results']
+        if "aws_results" in self._cache:
+            return self._cache["aws_results"]
         # Call the Okta APIs and process data locally
-        if self.gimme_creds_server == 'internal':
+        if self.gimme_creds_server == "internal":
             # Okta API key is required when calling Okta APIs internally
             if self.config.api_key is None:
-                raise errors.GimmeAWSCredsError('OKTA_API_KEY environment variable not found!')
+                raise errors.GimmeAWSCredsError(
+                    "OKTA_API_KEY environment variable not found!"
+                )
             auth_result = self.auth_session
-            aws_results = self._get_aws_account_info(self.okta_org_url, self.config.api_key,
-                                                     auth_result['username'])
+            aws_results = self._get_aws_account_info(
+                self.okta_org_url, self.config.api_key, auth_result["username"]
+            )
 
-        elif self.gimme_creds_server == 'appurl':
+        elif self.gimme_creds_server == "appurl":
             self.auth_session
             # bypass lambda & API call
             # Apps url is required when calling with appurl
-            if self.conf_dict.get('app_url'):
-                self.config.app_url = self.conf_dict['app_url']
+            if self.conf_dict.get("app_url"):
+                self.config.app_url = self.conf_dict["app_url"]
             if self.config.app_url is None:
-                raise errors.GimmeAWSCredsError('app_url is not defined in your config!')
+                raise errors.GimmeAWSCredsError(
+                    "app_url is not defined in your config!"
+                )
 
             # build app list
             aws_results = []
             new_app_entry = {
-                'id': 'fakeid',  # not used anyway
-                'name': 'fakelabel',  # not used anyway
-                'links': {'appLink': self.config.app_url}
+                "id": "fakeid",  # not used anyway
+                "name": "fakelabel",  # not used anyway
+                "links": {"appLink": self.config.app_url},
             }
             aws_results.append(new_app_entry)
 
         # Use the gimme_creds_lambda service
         else:
-            if not self.conf_dict.get('client_id'):
-                raise errors.GimmeAWSCredsError('No OAuth Client ID in configuration.  Try running --config again.')
-            if not self.conf_dict.get('okta_auth_server'):
+            if not self.conf_dict.get("client_id"):
                 raise errors.GimmeAWSCredsError(
-                    'No OAuth Authorization server in configuration.  Try running --config again.')
+                    "No OAuth Client ID in configuration.  Try running --config again."
+                )
+            if not self.conf_dict.get("okta_auth_server"):
+                raise errors.GimmeAWSCredsError(
+                    "No OAuth Authorization server in configuration.  Try running --config again."
+                )
 
-            if self.okta_platform == 'classic':
+            if self.okta_platform == "classic":
                 # Authenticate with Okta and get an OAuth access token
                 self.okta.auth_oauth(
-                    self.conf_dict['client_id'],
-                    authorization_server=self.conf_dict['okta_auth_server'],
+                    self.conf_dict["client_id"],
+                    authorization_server=self.conf_dict["okta_auth_server"],
                     access_token=True,
                     id_token=False,
-                    scopes=['openid']
+                    scopes=["openid"],
                 )
 
                 # auth_session isn't needed when using gimme_creds_lambda and Okta classic
                 self.set_auth_session(None)
 
-            elif self.okta_platform == 'identity_engine':
+            elif self.okta_platform == "identity_engine":
                 auth_result = self.auth_session
 
             # Add Access Tokens to Okta-protected requests
             self.okta.use_oauth_access_token(True)
 
             self.ui.info("Authentication Success! Calling Gimme-Creds Server...")
-            aws_results = self._call_gimme_creds_server(self.okta, self.gimme_creds_server)
+            aws_results = self._call_gimme_creds_server(
+                self.okta, self.gimme_creds_server
+            )
 
-        self._cache['aws_results'] = aws_results
+        self._cache["aws_results"] = aws_results
         return aws_results
 
     @property
     def aws_app(self):
-        if 'aws_app' in self._cache:
-            return self._cache['aws_app']
-        self._cache['aws_app'] = aws_app = self._get_selected_app(self.conf_dict.get('aws_appname'), self.aws_results)
+        if "aws_app" in self._cache:
+            return self._cache["aws_app"]
+        self._cache["aws_app"] = aws_app = self._get_selected_app(
+            self.conf_dict.get("aws_appname"), self.aws_results
+        )
         return aws_app
 
     @property
     def saml_data(self):
-        if 'saml_data' in self._cache:
-            return self._cache['saml_data']
-        app_link = self.aws_app['links']['appLink']
+        if "saml_data" in self._cache:
+            return self._cache["saml_data"]
+        app_link = self.aws_app["links"]["appLink"]
         if self._alicloud_enabled() is True:
-            saml_app_url = self.conf_dict.get('app_url') or app_link
-            saml_sso_url = self.conf_dict.get('alicloud_saml_url')
+            saml_sso_url = self.conf_dict.get("alicloud_saml_url") or app_link
             saml_data = self._alibaba_cloud_client().get_saml_response(
                 saml_sso_url=saml_sso_url,
                 saml_app_url=app_link,
@@ -910,73 +1040,81 @@ class GimmeAWSCreds:
             )
         else:
             saml_data = self.okta.get_saml_response(app_link, self.auth_session)
-        self._cache['saml_data'] = saml_data
+        self._cache["saml_data"] = saml_data
         return saml_data
 
     @property
     def aws_roles(self):
-        if 'aws_roles' in self._cache:
-            return self._cache['aws_roles']
+        if "aws_roles" in self._cache:
+            return self._cache["aws_roles"]
 
         if self._alicloud_enabled() is True:
-            alibaba_cloud_roles = AlibabaCloudClient.enumerate_saml_roles(self.saml_data['SAMLResponse'])
+            alibaba_cloud_roles = AlibabaCloudClient.enumerate_saml_roles(
+                self.saml_data["SAMLResponse"]
+            )
             roles = [
                 RoleSet(
                     idp=ar.saml_provider_arn,
                     role=ar.role_arn,
-                    friendly_account_name='Account: {}'.format(ar.account_id) if ar.account_id else '',
-                    friendly_role_name=ar.role_arn.split('/')[-1] if ar.role_arn else '',
+                    friendly_account_name=(
+                        "Account: {}".format(ar.account_id) if ar.account_id else ""
+                    ),
+                    friendly_role_name=(
+                        ar.role_arn.split("/")[-1] if ar.role_arn else ""
+                    ),
                 )
                 for ar in alibaba_cloud_roles
             ]
         else:
             roles = self.resolver._enumerate_saml_roles(
-                self.saml_data['SAMLResponse'],
-                self.saml_data['TargetUrl'],
+                self.saml_data["SAMLResponse"],
+                self.saml_data["TargetUrl"],
             )
-        self._cache['aws_roles'] = roles
+        self._cache["aws_roles"] = roles
         return roles
 
     @property
     def aws_selected_roles(self):
-        if 'aws_selected_roles' in self._cache:
-            return self._cache['aws_selected_roles']
+        if "aws_selected_roles" in self._cache:
+            return self._cache["aws_selected_roles"]
         selected_roles = self._get_selected_roles(self.requested_roles, self.aws_roles)
-        self._cache['aws_selected_roles'] = ret = [
-            role
-            for role in self.aws_roles
-            if role.role in selected_roles
+        self._cache["aws_selected_roles"] = ret = [
+            role for role in self.aws_roles if role.role in selected_roles
         ]
         return ret
 
     @property
     def requested_roles(self):
-        if 'requested_roles' in self._cache:
-            return self._cache['requested_roles']
-        self._cache['requested_roles'] = requested_roles = self.config.roles or self.conf_dict.get('aws_rolename', '')
+        if "requested_roles" in self._cache:
+            return self._cache["requested_roles"]
+        self._cache["requested_roles"] = requested_roles = (
+            self.config.roles or self.conf_dict.get("aws_rolename", "")
+        )
         return requested_roles
 
     @property
     def aws_partition(self):
-        if 'aws_partition' in self._cache:
-            return self._cache['aws_partition']
+        if "aws_partition" in self._cache:
+            return self._cache["aws_partition"]
         if self._alicloud_enabled() is True:
             # Alibaba Cloud STS uses alicloud_region / aws_region; SAML ACS is not an AWS sign-in URL.
-            self._cache['aws_partition'] = 'alicloud'
-            return 'alicloud'
-        aws_partition, aws_region = self._get_partition_and_region_from_saml_acs(self.saml_data['TargetUrl'])
-        self._cache['aws_partition'] = aws_partition
+            self._cache["aws_partition"] = "alicloud"
+            return "alicloud"
+        aws_partition, aws_region = self._get_partition_and_region_from_saml_acs(
+            self.saml_data["TargetUrl"]
+        )
+        self._cache["aws_partition"] = aws_partition
         # use the region of the SAML ACS if one wasn't specified by the user
-        if self.conf_dict.get('aws_region') is None:
-            self.conf_dict['aws_region'] = aws_region
+        if self.conf_dict.get("aws_region") is None:
+            self.conf_dict["aws_region"] = aws_region
         return aws_partition
 
     @staticmethod
     def _credentials_expiration_iso(creds):
-        exp = creds.get('Expiration') if creds else None
+        exp = creds.get("Expiration") if creds else None
         if exp is None:
-            return ''
-        if hasattr(exp, 'isoformat'):
+            return ""
+        if hasattr(exp, "isoformat"):
             return exp.isoformat()
         return str(exp)
 
@@ -985,115 +1123,143 @@ class GimmeAWSCreds:
         credentials = {}
         if generate_credentials:
             if self._alicloud_enabled() is True:
-                alicloud_region = (
-                    self.conf_dict.get('alicloud_region')
-                    or 'cn-hangzhou'
-                )
+                alicloud_region = self.conf_dict.get("alicloud_region") or "cn-hangzhou"
                 try:
                     raw = self._alibaba_cloud_client().assume_role_with_saml(
                         role.role,
                         role.idp,
-                        self.saml_data['SAMLResponse'],
+                        self.saml_data["SAMLResponse"],
                         duration=self.config.aws_default_duration,
                         region_id=alicloud_region,
                     )
                 except Exception as ex:
-                    if 'The min of duration seconds is 900, the max of duration seconds is 3600' in str(ex):
+                    if (
+                        "The min of duration seconds is 900, the max of duration seconds is 3600"
+                        in str(ex)
+                    ):
                         self.ui.warning(
-                            "The requested session duration was too long for the role {}.  Falling back to 1 hour.".format(role.role))
+                            "The requested session duration was too long for the role {}.  Falling back to 1 hour.".format(
+                                role.role
+                            )
+                        )
                         raw = self._alibaba_cloud_client().assume_role_with_saml(
                             role.role,
                             role.idp,
-                            self.saml_data['SAMLResponse'],
+                            self.saml_data["SAMLResponse"],
                             duration=3600,
                             region_id=alicloud_region,
                         )
                     else:
-                        self.ui.error('Failed to generate Alibaba Cloud credentials for {} due to {}'.format(role.role, ex))
+                        self.ui.error(
+                            "Failed to generate Alibaba Cloud credentials for {} due to {}".format(
+                                role.role, ex
+                            )
+                        )
                         return None
                 credentials = {
-                    'access_key_id': raw.get('AccessKeyId'),
-                    'access_key_secret': raw.get('AccessKeySecret'),
-                    'security_token': raw.get('SecurityToken'),
-                    'expiration': raw.get('Expiration'),
-                    'credentials_type': 'alibaba_cloud',
-                    'region_id': alicloud_region,
+                    "access_key_id": raw.get("AccessKeyId"),
+                    "access_key_secret": raw.get("AccessKeySecret"),
+                    "security_token": raw.get("SecurityToken"),
+                    "expiration": raw.get("Expiration"),
+                    "credentials_type": "alibaba_cloud",
+                    "region_id": alicloud_region,
                 }
             else:
                 try:
                     cred_data = self._get_sts_creds(
                         self.aws_partition,
-                        self.conf_dict.get('aws_region'),
-                        self.saml_data['SAMLResponse'],
+                        self.conf_dict.get("aws_region"),
+                        self.saml_data["SAMLResponse"],
                         role.idp,
                         role.role,
                         self.config.aws_default_duration,
                     )
                 except ClientError as ex:
-                    if 'requested DurationSeconds exceeds the MaxSessionDuration' in ex.response['Error']['Message']:
+                    if (
+                        "requested DurationSeconds exceeds the MaxSessionDuration"
+                        in ex.response["Error"]["Message"]
+                    ):
                         self.ui.warning(
-                            "The requested session duration was too long for the role {}.  Falling back to 1 hour.".format(role.role))
+                            "The requested session duration was too long for the role {}.  Falling back to 1 hour.".format(
+                                role.role
+                            )
+                        )
                         cred_data = self._get_sts_creds(
                             self.aws_partition,
-                            self.conf_dict.get('aws_region'),
-                            self.saml_data['SAMLResponse'],
+                            self.conf_dict.get("aws_region"),
+                            self.saml_data["SAMLResponse"],
                             role.idp,
                             role.role,
                             3600,
                         )
                     else:
-                        self.ui.error('Failed to generate credentials for {} due to {}'.format(role.role, ex))
+                        self.ui.error(
+                            "Failed to generate credentials for {} due to {}".format(
+                                role.role, ex
+                            )
+                        )
                         return None
 
                 credentials = {
-                    'aws_access_key_id': cred_data.get('AccessKeyId', ''),
-                    'aws_secret_access_key': cred_data.get('SecretAccessKey', ''),
-                    'aws_session_token': cred_data.get('SessionToken', ''),
-                    'aws_security_token': cred_data.get('SessionToken', ''),
-                    'expiration': self._credentials_expiration_iso(cred_data),
-                    'credentials_type': 'aws',
+                    "aws_access_key_id": cred_data.get("AccessKeyId", ""),
+                    "aws_secret_access_key": cred_data.get("SecretAccessKey", ""),
+                    "aws_session_token": cred_data.get("SessionToken", ""),
+                    "aws_security_token": cred_data.get("SessionToken", ""),
+                    "expiration": self._credentials_expiration_iso(cred_data),
+                    "credentials_type": "aws",
                 }
 
         naming_data = self._naming_data_for_role(role.role)
         # set the profile name
         # Note if there are multiple roles
         # it will be overwritten multiple times and last role wins.
-        cred_profile = self.conf_dict['cred_profile']
-        resolve_alias = self.conf_dict['resolve_aws_alias']
-        include_path = self.conf_dict.get('include_path')
-        profile_name = self.get_profile_name(cred_profile, include_path, naming_data, resolve_alias, role)
+        cred_profile = self.conf_dict["cred_profile"]
+        resolve_alias = self.conf_dict["resolve_aws_alias"]
+        include_path = self.conf_dict.get("include_path")
+        profile_name = self.get_profile_name(
+            cred_profile, include_path, naming_data, resolve_alias, role
+        )
 
         return {
-            'shared_credentials_file': self.AWS_CONFIG if self._alicloud_enabled() is False else self.ALIBABA_CLOUD_CONFIG,
-            'profile': {
-                'name': profile_name,
-                'derived_name': naming_data['role'],
-                'config_name': self.conf_dict.get('cred_profile', ''),
+            "shared_credentials_file": (
+                self.AWS_CONFIG
+                if self._alicloud_enabled() is False
+                else self.ALIBABA_CLOUD_CONFIG
+            ),
+            "profile": {
+                "name": profile_name,
+                "derived_name": naming_data["role"],
+                "config_name": self.conf_dict.get("cred_profile", ""),
             },
-            'role': {
-                'arn': role.role,
-                'name': role.role,
-                'friendly_name': role.friendly_role_name,
-                'friendly_account_name': role.friendly_account_name,
+            "role": {
+                "arn": role.role,
+                "name": role.role,
+                "friendly_name": role.friendly_role_name,
+                "friendly_account_name": role.friendly_account_name,
             },
-            'credentials': credentials if bool(credentials) else {}
+            "credentials": credentials if bool(credentials) else {},
         }
 
-    def get_profile_name(self, cred_profile, include_path, naming_data, resolve_alias, role):
-        if cred_profile.lower() == 'default':
-            profile_name = 'default'
-        elif cred_profile.lower() == 'role':
-            profile_name = naming_data['role']
-        elif cred_profile.lower() == 'acc':
-            profile_name = self._get_account_name(naming_data['account'], role, resolve_alias)
-        elif cred_profile.lower() == 'acc-role':
-            account = self._get_account_name(naming_data['account'], role, resolve_alias)
-            role_name = naming_data['role']
-            path = naming_data['path']
+    def get_profile_name(
+        self, cred_profile, include_path, naming_data, resolve_alias, role
+    ):
+        if cred_profile.lower() == "default":
+            profile_name = "default"
+        elif cred_profile.lower() == "role":
+            profile_name = naming_data["role"]
+        elif cred_profile.lower() == "acc":
+            profile_name = self._get_account_name(
+                naming_data["account"], role, resolve_alias
+            )
+        elif cred_profile.lower() == "acc-role":
+            account = self._get_account_name(
+                naming_data["account"], role, resolve_alias
+            )
+            role_name = naming_data["role"]
+            path = naming_data["path"]
             if include_path is True:
-                role_name = ''.join([path, role_name])
-            profile_name = '-'.join([account,
-                                     role_name])
+                role_name = "".join([path, role_name])
+            profile_name = "-".join([account, role_name])
         else:
             profile_name = cred_profile
         return profile_name
@@ -1113,32 +1279,35 @@ class GimmeAWSCreds:
             return data
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-            aws_results = executor.map(generate_credentials_prepare_data, self.aws_selected_roles)
+            aws_results = executor.map(
+                generate_credentials_prepare_data, self.aws_selected_roles
+            )
         for ar in aws_results:
             if not ar:
                 continue
             results.append(ar)
             yield ar
 
-        self._cache['selected_aws_credentials'] = results
+        self._cache["selected_aws_credentials"] = results
 
     @property
     def selected_aws_credentials(self):
-        if 'selected_aws_credentials' in self._cache:
-            return self._cache['selected_aws_credentials']
-        self._cache['selected_aws_credentials'] = ret = list(self.iter_selected_aws_credentials())
+        if "selected_aws_credentials" in self._cache:
+            return self._cache["selected_aws_credentials"]
+        self._cache["selected_aws_credentials"] = ret = list(
+            self.iter_selected_aws_credentials()
+        )
         return ret
 
     def _run(self):
-        """ Pulling it all together to make the CLI """
+        """Pulling it all together to make the CLI"""
         self.handle_action_configure()
         self.handle_action_list_profiles()
-        if self.okta_platform == 'classic':
+        self.handle_action_store_json_creds()
+        if self.okta_platform == "classic":
             self.handle_action_register_device()
             self.handle_setup_fido_authenticator()
-        self.handle_action_store_json_creds()
         self.handle_action_list_roles()
-
 
         # for each data item, if we have an override on output, prioritize that
         # if we do not, prioritize writing credentials to file if that is in our
@@ -1149,7 +1318,7 @@ class GimmeAWSCreds:
                 self.write_result_action(self.config.action_output_format, data)
                 continue
 
-            write_aws_creds = str(self.conf_dict['write_aws_creds']) == 'True'
+            write_aws_creds = str(self.conf_dict["write_aws_creds"]) == "True"
             # check if write_aws_creds is true if so
             # get the profile name and write out the file
             if write_aws_creds:
@@ -1165,22 +1334,22 @@ class GimmeAWSCreds:
             self.ui.result(json.dumps(data))
             return
 
-        creds = data.get('credentials', {})
-        is_alicloud = creds.get('credentials_type') == 'alibaba_cloud'
+        creds = data.get("credentials", {})
+        is_alicloud = creds.get("credentials_type") == "alibaba_cloud"
 
         if is_alicloud:
             env_vars = {
-                'ALIBABA_CLOUD_ACCESS_KEY_ID': creds.get('access_key_id', ''),
-                'ALIBABA_CLOUD_ACCESS_KEY_SECRET': creds.get('access_key_secret', ''),
-                'ALIBABA_CLOUD_SECURITY_TOKEN': creds.get('security_token', ''),
+                "ALIBABA_CLOUD_ACCESS_KEY_ID": creds.get("access_key_id", ""),
+                "ALIBABA_CLOUD_ACCESS_KEY_SECRET": creds.get("access_key_secret", ""),
+                "ALIBABA_CLOUD_SECURITY_TOKEN": creds.get("security_token", ""),
             }
         else:
             env_vars = {
-                'AWS_ROLE_ARN': data['role']['arn'],
-                'AWS_ACCESS_KEY_ID': creds.get('aws_access_key_id', ''),
-                'AWS_SECRET_ACCESS_KEY': creds.get('aws_secret_access_key', ''),
-                'AWS_SESSION_TOKEN': creds.get('aws_session_token', ''),
-                'AWS_SECURITY_TOKEN': creds.get('aws_security_token', ''),
+                "AWS_ROLE_ARN": data["role"]["arn"],
+                "AWS_ACCESS_KEY_ID": creds.get("aws_access_key_id", ""),
+                "AWS_SECRET_ACCESS_KEY": creds.get("aws_secret_access_key", ""),
+                "AWS_SESSION_TOKEN": creds.get("aws_session_token", ""),
+                "AWS_SECURITY_TOKEN": creds.get("aws_security_token", ""),
             }
 
         if action == "windows":
@@ -1188,8 +1357,7 @@ class GimmeAWSCreds:
                 self.ui.result('$env:{}="{}"'.format(key, val))
         else:
             for key, val in env_vars.items():
-                self.ui.result('export {}={}'.format(key, val))
-
+                self.ui.result("export {}={}".format(key, val))
 
     def handle_action_configure(self):
         # Create/Update config when configure arg set
@@ -1202,9 +1370,11 @@ class GimmeAWSCreds:
         if not self.config.action_list_profiles:
             return
         if os.path.isfile(self.config.OKTA_CONFIG):
-            with open(self.config.OKTA_CONFIG, 'r') as okta_config:
+            with open(self.config.OKTA_CONFIG, "r") as okta_config:
                 raise errors.GimmeAWSCredsExitSuccess(result=okta_config.read())
-        raise errors.GimmeAWSCredsExitError('{} is not a file'.format(self.config.OKTA_CONFIG))
+        raise errors.GimmeAWSCredsExitError(
+            "{} is not a file".format(self.config.OKTA_CONFIG)
+        )
 
     def handle_action_store_json_creds(self, stream=None):
         if not self.config.action_store_json_creds:
@@ -1215,39 +1385,53 @@ class GimmeAWSCreds:
             try:
                 data = json.loads(line)
             except json.JSONDecodeError:
-                self.ui.warning('error parsing json line {}'.format(repr(line)))
+                self.ui.warning("error parsing json line {}".format(repr(line)))
                 continue
             self.write_credentials_from_data(data)
         raise errors.GimmeAWSCredsExitSuccess()
 
     def handle_action_register_device(self):
         # Capture the Device Token and write it to the config file
-        if self.okta_platform == "classic" and self.skip_DT is False and ( not self.device_token or self.config.action_register_device is True ):
+        if (
+            self.okta_platform == "classic"
+            and self.skip_DT is False
+            and (not self.device_token or self.config.action_register_device is True)
+        ):
             if not self.config.action_register_device:
-                self.ui.notify('\n*** No device token found in configuration file, it will be created.')
-                self.ui.notify('*** You may be prompted for MFA more than once for this run.\n')
+                self.ui.notify(
+                    "\n*** No device token found in configuration file, it will be created."
+                )
+                self.ui.notify(
+                    "*** You may be prompted for MFA more than once for this run.\n"
+                )
 
             auth_result = self.auth_session
-            base_config = self.config.get_config_dict(include_inherits = False)
-            base_config['device_token'] = auth_result['device_token']
+            base_config = self.config.get_config_dict(include_inherits=False)
+            base_config["device_token"] = auth_result["device_token"]
             self.config.write_config_file(base_config)
-            self.okta.device_token = base_config['device_token']
+            self.okta.device_token = base_config["device_token"]
 
-            self.ui.notify('\nDevice token saved!\n')
+            self.ui.notify("\nDevice token saved!\n")
 
             if self.config.action_register_device is True:
                 raise errors.GimmeAWSCredsExitSuccess()
 
     def handle_action_list_roles(self):
         if self.config.action_list_roles:
-            raise errors.GimmeAWSCredsExitSuccess(result='\n'.join(map(str, self.aws_roles)))
+            raise errors.GimmeAWSCredsExitSuccess(
+                result="\n".join(map(str, self.aws_roles))
+            )
 
     def handle_setup_fido_authenticator(self):
         if self.config.action_setup_fido_authenticator:
             # Registers a new fido authenticator to Okta, to be used later as an MFA device
-            self.ui.notify('\n*** Registering a new fido authenticator in Okta.')
-            self.ui.notify('\n*** Note that webauthn authenticators must be allowed for this operation to succeed.')
-            self.ui.notify('*** You may be prompted for MFA more than once for this run.\n')
+            self.ui.notify("\n*** Registering a new fido authenticator in Okta.")
+            self.ui.notify(
+                "\n*** Note that webauthn authenticators must be allowed for this operation to succeed."
+            )
+            self.ui.notify(
+                "*** You may be prompted for MFA more than once for this run.\n"
+            )
 
             # noinspection PyStatementEffect
             self.auth_session

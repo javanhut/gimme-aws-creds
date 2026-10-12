@@ -9,6 +9,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and* limitations under the License.*
 """
+
 import builtins
 import getpass
 import os
@@ -26,7 +27,7 @@ class UserInterface:
         self.argv_bkp = None
         self.args = self.argv[1:]
         with self:
-            self.HOME = os.path.expanduser('~')
+            self.HOME = os.path.expanduser("~")
 
     def result(self, result):
         """handles output lines
@@ -105,14 +106,14 @@ class CLIUserInterface(UserInterface):
 
     def prompt(self, message=None):
         if message is not None:
-            builtins.print(message, file=sys.stderr, end='')
+            builtins.print(message, file=sys.stderr, end="")
             sys.stderr.flush()
 
     def message(self, message):
         builtins.print(message, file=sys.stderr)
 
     def read_input(self, hidden=False):
-        return getpass.getpass('') if hidden else builtins.input()
+        return getpass.getpass("") if hidden else builtins.input()
 
     def notify(self, message):
         builtins.print(message, file=sys.stderr)

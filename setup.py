@@ -1,30 +1,34 @@
 from setuptools import setup, find_packages
 
-with open('requirements.txt') as f:
+with open("requirements.txt") as f:
     requirements = f.read().splitlines()
 
 setup(
-    name='gimme_aws_creds',
-    version='2.9.0-pre',
+    name="gimme_aws_creds",
+    version="2.9.0-pre",
     install_requires=requirements,
     extras_require={
-        'alicloud': [
-            'alibabacloud_sts20150401>=1.2.0,<2.0.0',
+        "alicloud": [
+            "alibabacloud_sts20150401>=1.2.0,<2.0.0",
         ],
     },
-    author='Eric Pierce',
-    author_email='eric.pierce@nike.com',
+    author="Eric Pierce",
+    author_email="eric.pierce@nike.com",
     description="A CLI to get temporary AWS credentials from Okta",
-    url='https://github.com/Nike-Inc/gimme-aws-creds',
+    url="https://github.com/Nike-Inc/gimme-aws-creds",
     long_description=open("LONG_DESCRIPTION.md").read(),
     python_requires=">=3.10",
-    license='Apache License, v2.0',
-    packages=find_packages(exclude=('tests', 'docs')),
+    license="Apache License, v2.0",
+    packages=find_packages(exclude=("tests", "docs")),
     test_suite="tests",
-    scripts=['bin/gimme-aws-creds', 'bin/gimme-aws-creds.cmd', 'bin/gimme-aws-creds-autocomplete.sh'],
+    scripts=[
+        "bin/gimme-aws-creds",
+        "bin/gimme-aws-creds.cmd",
+        "bin/gimme-aws-creds-autocomplete.sh",
+    ],
     classifiers=[
-        'Natural Language :: English',
-        'Programming Language :: Python :: 3 :: Only',
-        'License :: OSI Approved :: Apache Software License'
-    ]
+        "Natural Language :: English",
+        "Programming Language :: Python :: 3 :: Only",
+        "License :: OSI Approved :: Apache Software License",
+    ],
 )

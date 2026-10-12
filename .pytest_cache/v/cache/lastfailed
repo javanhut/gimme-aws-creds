@@ -1,0 +1,14 @@
+{
+  "tests/test_bug_fixes.py::TestParseRoleArnNullSafety": true,
+  "tests/test_bug_fixes.py::TestNamingDataForRole": true,
+  "tests/test_bug_fixes.py::TestWriteResultActionAlicloud": true,
+  "tests/test_bug_fixes.py::TestParseSamlForm": true,
+  "tests/test_bug_fixes.py::TestParseSamlRoleAttributes": true,
+  "tests/test_bug_fixes.py::TestUserAgent": true,
+  "tests/test_bug_fixes.py::TestAcsPartitionParsing": true,
+  "tests/test_bug_fixes.py::TestSelectionErrorMessages": true,
+  "tests/test_bug_fixes.py::TestOktaSdkTupleResults": true,
+  "tests/test_bug_fixes.py::TestStoreJsonCredsWithoutType": true,
+  "tests/test_bug_fixes.py::TestRolePatterns": true,
+  "tests/test_bug_fixes.py::TestFactorChoiceRange": true
+}

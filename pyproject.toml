@@ -1,3 +1,38 @@
 [build-system]
 requires = ["setuptools", "setuptools-rust"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "gimme-aws-creds"
+# setup.py remains the source of truth for these
+dynamic = ["version", "description", "readme", "license", "authors", "classifiers", "urls"]
+requires-python = ">=3.10"
+# Keep in sync with requirements.txt
+dependencies = [
+    "boto3>=1.26.0,<2.0.0",
+    "beautifulsoup4>=4.6.0,<5.0.0",
+    "keyring>=21.4.0",
+    "requests>=2.25.0,<3.0.0",
+    # webauthn.py/u2f.py and ctap-keyring-device use the pre-1.0 fido2 API
+    "fido2>=0.9.1,<0.10.0",
+    "okta>=3.0.0,<4.0.0",
+    # needs winrt on Windows, which has no wheels for Python 3.10+ (see dummy_webauthn.py)
+    "ctap-keyring-device>=1.0.4; platform_system != 'Windows'",
+    "pyjwt>=2.4.0,<3.0.0",
+    "urllib3>=1.26.0,<3.0.0",
+    "html5lib>=1.1,<2.0.0",
+    "furl>=2.1.3,<3.0.0",
+]
+
+[project.optional-dependencies]
+alicloud = ["alibabacloud-sts20150401>=1.2.0,<2.0.0"]
+
+[dependency-groups]
+dev = [
+    "alibabacloud-sts20150401>=1.2.0,<2.0.0",
+    "black>=26.10.1",
+    # test_build_verification runs `python -m pip`, which uv venvs don't ship
+    "pip",
+    "pytest>=7.2.2",
+    "responses>=0.5.1,<1.0.0",
+]

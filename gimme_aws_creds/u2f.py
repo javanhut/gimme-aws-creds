@@ -20,7 +20,11 @@ from fido2.ctap1 import Ctap1
 from fido2.hid import CtapHidDevice
 from fido2.utils import sha256, websafe_decode
 
-from gimme_aws_creds.errors import NoFIDODeviceFoundError, FIDODeviceTimeoutError, FIDODeviceError
+from gimme_aws_creds.errors import (
+    NoFIDODeviceFoundError,
+    FIDODeviceTimeoutError,
+    FIDODeviceError,
+)
 
 
 class FactorU2F:
@@ -37,13 +41,11 @@ class FactorU2F:
         self._cancel = Event()
         self._credentialId = websafe_decode(credentialId)
         self._appId = sha256(appId.encode())
-        self._version = 'U2F_V2'
+        self._version = "U2F_V2"
         self._signature = None
-        self._clientData = json.dumps({
-            "challenge": nonce,
-            "origin": appId,
-            "typ": "navigator.id.getAssertion"
-        }).encode()
+        self._clientData = json.dumps(
+            {"challenge": nonce, "origin": appId, "typ": "navigator.id.getAssertion"}
+        ).encode()
         self._nonce = sha256(self._clientData)
 
     def locate_device(self):
@@ -59,11 +61,12 @@ class FactorU2F:
         for _ in range(30):
             try:
                 self._signature = client.authenticate(
-                    self._nonce, self._appId, self._credentialId )
+                    self._nonce, self._appId, self._credentialId
+                )
             except ApduError as e:
                 if e.code == APDU.USE_NOT_SATISFIED:
                     if not self._has_prompted:
-                        self.ui.info('\nTouch your authenticator device now...\n')
+                        self.ui.info("\nTouch your authenticator device now...\n")
                         self._has_prompted = True
                     time.sleep(0.5)
                     continue
@@ -81,7 +84,7 @@ class FactorU2F:
         try:
             self.locate_device()
         except NoFIDODeviceFoundError:
-            self.ui.input('Please insert your security key and press enter...')
+            self.ui.input("Please insert your security key and press enter...")
             self.locate_device()
 
         threads = []
@@ -94,7 +97,7 @@ class FactorU2F:
             t.join()
 
         if not self._cancel.is_set():
-            self.ui.info('Operation timed out or no valid Security Key found !')
+            self.ui.info("Operation timed out or no valid Security Key found !")
             raise FIDODeviceTimeoutError
 
         return self._clientData, self._signature

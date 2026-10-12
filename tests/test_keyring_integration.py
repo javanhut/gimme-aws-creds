@@ -1,4 +1,5 @@
 """Unit tests for keyring integration and deprecation warnings"""
+
 import unittest
 import warnings
 
@@ -17,24 +18,26 @@ class TestKeyringDeprecationWarnings(unittest.TestCase):
                 warnings.simplefilter("always")
                 # Import keyring and use its APIs
                 import keyring
+
                 keyring.get_keyring()
                 try:
-                    keyring.get_password('test-service', 'test-user')
+                    keyring.get_password("test-service", "test-user")
                 except keyring.errors.NoKeyringError:
                     # No keyring backend available - skip the get_password test
                     # but we can still check for deprecation warnings from the import/get_keyring
                     pass
-                
+
                 # Check for deprecation warnings
                 deprecation_warnings = [
-                    x for x in w 
-                    if 'deprecated' in str(x.message).lower() 
+                    x
+                    for x in w
+                    if "deprecated" in str(x.message).lower()
                     or issubclass(x.category, DeprecationWarning)
                 ]
                 self.assertEqual(
-                    len(deprecation_warnings), 
+                    len(deprecation_warnings),
                     0,
-                    f"Found deprecation warnings: {[str(x.message) for x in deprecation_warnings]}"
+                    f"Found deprecation warnings: {[str(x.message) for x in deprecation_warnings]}",
                 )
         except keyring.errors.NoKeyringError:
             self.skipTest("No keyring backend available on this platform")
@@ -43,29 +46,31 @@ class TestKeyringDeprecationWarnings(unittest.TestCase):
         """AC #5: Verify no ctap-keyring-device deprecation warnings appear"""
         try:
             import ctap_keyring_device
+
             with warnings.catch_warnings(record=True) as w:
                 warnings.simplefilter("always")
                 # Import ctap-keyring-device and use its APIs
                 from ctap_keyring_device.ctap_keyring_device import CtapKeyringDevice
                 from ctap_keyring_device.ctap_strucs import CtapOptions
-                
+
                 # Try to list devices (may return empty list if no devices)
                 try:
                     CtapKeyringDevice.list_devices()
                 except Exception:
                     # Ignore errors - we're just checking for deprecation warnings
                     pass
-                
+
                 # Check for deprecation warnings
                 deprecation_warnings = [
-                    x for x in w 
-                    if 'deprecated' in str(x.message).lower() 
+                    x
+                    for x in w
+                    if "deprecated" in str(x.message).lower()
                     or issubclass(x.category, DeprecationWarning)
                 ]
                 self.assertEqual(
-                    len(deprecation_warnings), 
+                    len(deprecation_warnings),
                     0,
-                    f"Found deprecation warnings: {[str(x.message) for x in deprecation_warnings]}"
+                    f"Found deprecation warnings: {[str(x.message) for x in deprecation_warnings]}",
                 )
         except ImportError:
             # ctap-keyring-device may not be available on all platforms (e.g., Windows Python 3.10+)
@@ -90,21 +95,21 @@ class TestKeyringAPIs(unittest.TestCase):
 
     def test_keyring_password_operations(self):
         """Test keyring password storage/retrieval/deletion APIs"""
-        service = 'gimme-aws-creds-test'
-        username = 'test-user'
-        password = 'test-password'
-        
+        service = "gimme-aws-creds-test"
+        username = "test-user"
+        password = "test-password"
+
         try:
             # Test set_password
             keyring.set_password(service, username, password)
-            
+
             # Test get_password
             retrieved = keyring.get_password(service, username)
             self.assertEqual(retrieved, password)
-            
+
             # Test delete_password
             keyring.delete_password(service, username)
-            
+
             # Verify deletion worked
             retrieved_after_delete = keyring.get_password(service, username)
             self.assertIsNone(retrieved_after_delete)

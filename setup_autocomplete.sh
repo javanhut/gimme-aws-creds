@@ -15,7 +15,7 @@ if [ "$(basename $SHELL)" = "bash" ] && [ -f ~/.bashrc ] ; then
     echo "source ${INSTALL_DIR}/gimme-aws-creds-autocomplete.sh" >> ~/.bashrc
   fi
 elif [ "$(basename $SHELL)" = "zsh" ] && [ -f ~/.zshrc ] ; then
-  grep -q 'gimme-aws-creds-autocompletion' ~/.zshrc
+  grep -q 'gimme-aws-creds-autocomplete' ~/.zshrc
   if [[ $? -ne 0 ]] ; then
     echo "Adding autocomplete setup to ~/.zshrc"
     echo "Source in .zshrc or simply restart your shell."

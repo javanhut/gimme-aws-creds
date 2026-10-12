@@ -10,15 +10,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and* limitations under the License.*
 """
 
-
 from . import errors
 
 from .common import FakeAssertion
 
 
 class WebAuthnClient:
-    """ Dummy WebAuthnClient class - needed until ctap-keyring-device is updated to support Python 3.10+ on Windows"""
-    def __init__(self, ui, okta_org_url, challenge, credential_id=None, timeout_ms=30_000):
+    """Dummy WebAuthnClient class - needed until ctap-keyring-device is updated to support Python 3.10+ on Windows"""
+
+    def __init__(
+        self, ui, okta_org_url, challenge, credential_id=None, timeout_ms=30_000
+    ):
         return None
 
     def locate_device(self):
@@ -29,16 +31,16 @@ class WebAuthnClient:
 
     def verify(self):
         raise errors.GimmeAWSCredsError(
-                "WebAuthn devices not supported on this platform", 2
-            )
-        
+            "WebAuthn devices not supported on this platform", 2
+        )
+
     def _verify(self, client):
         return None
 
     def make_credential(self, user):
         raise errors.GimmeAWSCredsError(
-                "WebAuthn devices not supported on this platform", 2
-            )
+            "WebAuthn devices not supported on this platform", 2
+        )
 
     def _make_credential(self, client, user):
         return None
@@ -48,10 +50,11 @@ class WebAuthnClient:
 
     def _get_pin_from_client(self, client):
         raise errors.GimmeAWSCredsError(
-                "WebAuthn devices not supported on this platform", 2
-            )
+            "WebAuthn devices not supported on this platform", 2
+        )
+
     @staticmethod
     def _get_user_verification_requirement_from_client(client):
         raise errors.GimmeAWSCredsError(
-                "WebAuthn devices not supported on this platform", 2
-            )
+            "WebAuthn devices not supported on this platform", 2
+        )

@@ -5,23 +5,25 @@ import os
 
 class RegisteredAuthenticators:
     """
-       The RegisteredAuthenticators class manages a json file of gimme-aws-creds registered
-       FIDO authenticators.
+    The RegisteredAuthenticators class manages a json file of gimme-aws-creds registered
+    FIDO authenticators.
 
-       There's a list of RegisteredAuthenticator entries with two fields:
-       - cred_id_hash - sha512 of the registered credential id
-       - user - a user identifier (email, name, uid, ...)
+    There's a list of RegisteredAuthenticator entries with two fields:
+    - cred_id_hash - sha512 of the registered credential id
+    - user - a user identifier (email, name, uid, ...)
     """
 
-    JSON_PATH_ENV_VAR = 'OKTA_REGISTERED_AUTHENTICATORS_FILE'
+    JSON_PATH_ENV_VAR = "OKTA_REGISTERED_AUTHENTICATORS_FILE"
 
     def __init__(self, gac_ui):
         """
         :type gac_ui: ui.UserInterface
         """
         self.ui = gac_ui
-        self._json_path = self.ui.environ.get(self.JSON_PATH_ENV_VAR,
-                                              os.path.join(self.ui.HOME, '.okta_aws_registered_authenticators'))
+        self._json_path = self.ui.environ.get(
+            self.JSON_PATH_ENV_VAR,
+            os.path.join(self.ui.HOME, ".okta_aws_registered_authenticators"),
+        )
         self._create_file_if_necessary(self._json_path)
 
     @staticmethod
@@ -29,7 +31,7 @@ class RegisteredAuthenticators:
         if os.path.exists(path):
             return None
 
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             json.dump([], f)
 
     def add_authenticator(self, credential_id, user):
@@ -40,9 +42,11 @@ class RegisteredAuthenticators:
         :type user: str
         """
         authenticators = self._get_authenticators()
-        authenticators.append(RegisteredAuthenticator(credential_id=credential_id, user=user))
+        authenticators.append(
+            RegisteredAuthenticator(credential_id=credential_id, user=user)
+        )
 
-        with open(self._json_path, 'w') as f:
+        with open(self._json_path, "w") as f:
             json.dump(authenticators, f)
 
     def get_authenticator_user(self, credential_id):
@@ -75,7 +79,9 @@ class RegisteredAuthenticator(dict):
         :type credential_id: bytes
         :type user: str
         """
-        credential_id_hash = credential_id_hash or self._hash_credential_id(credential_id)
+        credential_id_hash = credential_id_hash or self._hash_credential_id(
+            credential_id
+        )
         super().__init__(credential_id_hash=credential_id_hash, user=user)
 
         self.credential_id_hash = credential_id_hash
