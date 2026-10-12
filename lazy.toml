@@ -6,9 +6,10 @@ default = "install"
 [commands]
 
 [commands.install]
-desc = "Build the standalone binary at dist/gimme-aws-creds"
+desc = "Build the standalone binary and install it to ~/.local/bin"
 run = [
     "uv run --with pyinstaller pyinstaller --onefile --clean --noconfirm --log-level ERROR --paths . --collect-data fido2 --collect-submodules okta --name gimme-aws-creds --specpath build bin/gimme-aws-creds",
+    "install -m 755 dist/gimme-aws-creds \"$HOME/.local/bin/gimme-aws-creds\"",
 ]
 
 # `imlazy sync` itself is an imlazy built-in (Makefile sync); reach this one
